@@ -1,0 +1,31 @@
+version: "3.0"
+services:
+  freeflowfeedszio:
+    restart: always
+    build:
+      context: .
+    ports:
+      - "0.0.0.0:8989:8989"
+    volumes:
+      - /<your>/<path>/<to>/freeflowfeeds_zio/data:/app/data
+    environment:
+      - FFF_FS_PATH=/app/data
+      - FFF_SERVER_HOST=0.0.0.0
+      - FFF_CONCURRENCY=3
+      - FFF_UPDATE_TIME=18:00
+      - FFF_UPDATE_INTERVAL=24
+      - FFF_EFMAGAZIN_PAGE_TO=2
+      - FFF_FREIHEITSFUNKEN_PAGE_TO=2
+      - FFF_MISESDE_PAGE_TO=2
+      - FFF_HAYEKINSTITUT_PAGE_TO=2
+      - FFF_INITIAL_REVERSE=false
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    volumes:
+      - /root/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - /ssl/liblit/:/ssl/liblit/
