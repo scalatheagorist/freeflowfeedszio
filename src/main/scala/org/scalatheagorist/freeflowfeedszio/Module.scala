@@ -4,7 +4,7 @@ import cats.implicits.toShow
 import com.google.inject.AbstractModule
 import net.codingwell.scalaguice.ScalaModule
 import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreClient
-import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreConfig
+import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
 import org.scalatheagorist.freeflowfeedszio.services.RSSService

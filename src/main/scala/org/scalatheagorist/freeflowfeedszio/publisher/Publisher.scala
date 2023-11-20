@@ -53,7 +53,7 @@ final case class PublisherHost(url: String, path: String, pageTo: Int, publisher
   }
 
   private def fromPages: List[(Publisher, String)] =
-    (publisher, url) :: List.range(1, pageTo).map(page => s"$url$path$page").map(uri => publisher -> uri)
+    (publisher, url) :: List.range(1, pageTo).map(page => s"$url$path$page").map(publisher -> _)
 
   private def fromPaths: List[(Publisher, String)] =
     path.split(", ").map(path => publisher -> s"$url$path").to(List)

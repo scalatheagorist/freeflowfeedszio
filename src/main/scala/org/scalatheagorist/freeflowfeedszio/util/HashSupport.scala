@@ -1,4 +1,4 @@
-package org.scalatheagorist.freeflowfeedszio
+package org.scalatheagorist.freeflowfeedszio.util
 
 import zio.Task
 import zio.ZIO

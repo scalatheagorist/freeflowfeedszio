@@ -2,7 +2,7 @@ package org.scalatheagorist.freeflowfeedszio
 
 import cats.Show
 import cats.implicits.showInterpolator
-import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreConfig
+import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts
 import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
 import zio.IO

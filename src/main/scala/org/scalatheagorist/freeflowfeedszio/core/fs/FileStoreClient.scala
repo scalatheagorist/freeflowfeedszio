@@ -1,6 +1,7 @@
 package org.scalatheagorist.freeflowfeedszio.core.fs
 
-import org.scalatheagorist.freeflowfeedszio.HashSupport
+import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
+import org.scalatheagorist.freeflowfeedszio.util.HashSupport
 import zio.Chunk
 import zio.ZIO
 import zio.json._

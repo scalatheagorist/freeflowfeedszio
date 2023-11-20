@@ -14,19 +14,6 @@ final class RSSBuilder @Inject()() {
     lang: Option[Lang])(
     stream: ZStream[Any, IOException, RSSFeed]
   ): ZStream[Any, IOException, String] = {
-    val header     = ZStream.succeed(getHeader)
-    val footer     = ZStream.succeed(getFooter)
-    val startCards = ZStream.succeed(
-      """
-        |<div class="container grid-container">
-        |<div class="custom-grid">
-        |""".stripMargin
-    )
-    val closeCards = ZStream.succeed(
-      """
-        |</div>
-        |</div>""".stripMargin
-    )
     val cards =
       publisher
         .map(p => stream.filter(_.publisher == p))
@@ -37,7 +24,21 @@ final class RSSBuilder @Inject()() {
     header ++ startCards ++ cards ++ closeCards ++ footer
   }
 
-  private def generateCardElement(rssFeed: RSSFeed): String = {
+  private lazy val header = ZStream.succeed(getHeader)
+  private lazy val footer = ZStream.succeed(getFooter)
+  private lazy val startCards = ZStream.succeed(
+    """
+      |<div class="container grid-container">
+      |<div class="custom-grid">
+      |""".stripMargin
+  )
+  private lazy val closeCards = ZStream.succeed(
+    """
+      |</div>
+      |</div>""".stripMargin
+  )
+
+  private def generateCardElement(rssFeed: RSSFeed): String =
     s"""
        |<div class="article-card">
        |    <div class="card mb-3 bg-primary text-white">
@@ -49,7 +50,6 @@ final class RSSBuilder @Inject()() {
        |    </div>
        |</div>
        |""".stripMargin
-  }
 
   private def getHeader: String =
     s"""

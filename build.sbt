@@ -21,7 +21,7 @@ val options = Seq(
 lazy val root = (project in file("."))
   .settings(
     organization := "org.scalatheagorist",
-    name := "freeflowfeedsziobackend",
+    name := "freeflowfeedszio",
     version := "1.0-SNAPSHOT",
     scalacOptions ++= options,
     Test / scalaSource := baseDirectory.value / "test" / "scala",

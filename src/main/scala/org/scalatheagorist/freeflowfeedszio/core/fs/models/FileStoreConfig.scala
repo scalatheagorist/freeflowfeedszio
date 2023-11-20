@@ -1,4 +1,4 @@
-package org.scalatheagorist.freeflowfeedszio.core.fs
+package org.scalatheagorist.freeflowfeedszio.core.fs.models
 
 import cats.Show
 
