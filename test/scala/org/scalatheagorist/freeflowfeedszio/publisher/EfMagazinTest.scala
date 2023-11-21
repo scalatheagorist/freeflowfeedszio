@@ -1,25 +1,31 @@
 package org.scalatheagorist.freeflowfeedszio.publisher
 
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
+import org.scalatheagorist.freeflowfeedszio.models.Article
+import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
+import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import zio._
+import zio.test._
 
-object EfMagazinTest extends App {
-
-  val browser = JsoupBrowser()
-
-  (browser.parseString(htmlResponse) >> elementList("article")).foreach { elem =>
-    val article = elem >> element("article")
-    val link = article >?> element("a") >> attr("href")
-    val title = article >?> text("p")
-    val author = (article >?> elements("p") >?> element("em") >?> text("a")).flatten.flatten.getOrElse("EfMagazin")
-
-
-    println(author)
+object EfMagazinTest extends ZIOSpecDefault {
+  override def spec: Spec[TestEnvironment with Scope, Any] = suite("EfMagazin") {
+    test("toRSSFeedStream") {
+      for {
+        efMagazin <- ZIO.succeed(EfMagazin("https://www.ef-magazin.de"))
+        htmlResp  <- ZIO.succeed(HtmlResponse(Publisher.EFMAGAZIN, htmlResponse))
+        build     <- efMagazin.toRSSFeedStream(htmlResp).runLast
+      } yield assertTrue(build.contains(RSSFeed(
+        author = "Jan Mehring",
+        article = Article(
+          title = "Werden Stadt und Land allmählich sturmreif reformiert?",
+          link = "https://www.ef-magazin.de/2023/09/22/20822-absenkung-des-wahlalters-make-berlin-gruen-again"
+        ),
+        publisher = Publisher.EFMAGAZIN,
+        lang = Lang.DE
+      )))
+    }
   }
 
-  def htmlResponse: String = {
+  private def htmlResponse: String = {
     s"""
        |
        |<!DOCTYPE html>

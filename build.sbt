@@ -47,11 +47,11 @@ lazy val root = (project in file("."))
 
       "net.ruippeixotog" %% "scala-scraper" % "3.1.0",
 
-      "org.mockito" %% "mockito-scala-scalatest" % "1.17.12" % "test",
-      "org.mockito" % "mockito-inline" % "3.12.4" % "test",
-      "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % "test"
+      "dev.zio" %% "zio-test" % "2.0.18" % Test,
+      "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test,
+      "dev.zio" %% "zio-test-magnolia" % "2.0.18" % Test
     )
   )
 
 Test / fork := true // @see https://github.com/sbt/sbt/issues/3022
-Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oSD")
+Test / testOptions += Tests.Argument(new TestFramework("zio.test.sbt.ZTestFramework"), "-oSD")
