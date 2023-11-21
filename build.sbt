@@ -49,7 +49,9 @@ lazy val root = (project in file("."))
 
       "dev.zio" %% "zio-test" % "2.0.18" % Test,
       "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test,
-      "dev.zio" %% "zio-test-magnolia" % "2.0.18" % Test
+      "dev.zio" %% "zio-test-magnolia" % "2.0.18" % Test,
+      "org.mockito" %% "mockito-scala-scalatest" % "1.17.12" % Test,
+      "org.mockito" % "mockito-inline" % "3.12.4" % Test
     )
   )
 
