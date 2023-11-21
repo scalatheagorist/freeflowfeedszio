@@ -1,25 +1,34 @@
 package org.scalatheagorist.freeflowfeedszio.publisher
 
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
+import org.scalatheagorist.freeflowfeedszio.models.Article
+import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
+import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import zio.Scope
+import zio._
+import zio.test.Spec
+import zio.test.TestEnvironment
+import zio.test.ZIOSpecDefault
+import zio.test.assertTrue
 
-object MisesDeTest extends App {
-
-  val browser = JsoupBrowser()
-
-  (browser.parseString(htmlResponse) >> elementList(".pt-cv-content-item")).foreach { elem =>
-    val author = (elem >> element(".author") >> element("span")).text
-    val title = (elem >?> element(".pt-cv-title") >?> text("a")).flatten
-    val href = elem >?> element(".pt-cv-mask") >?> element("a") >?> attr("href")
-
-    println("Title: " + title.mkString)
-    println("Author: " + author)
-    println("Link: " + href.flatten.flatten.mkString)
+object MisesDESpec extends ZIOSpecDefault {
+  override def spec: Spec[TestEnvironment with Scope, Any] = suite("MisesDE") {
+    test("toRSSFeedStream") {
+      for {
+        htmlResp <- ZIO.succeed(HtmlResponse(Publisher.MISESDE, htmlResponse))
+        build    <- MisesDE.toRSSFeedStream(htmlResp).runLast
+      } yield assertTrue(build.contains(RSSFeed(
+        author = "Rainer Zitelmann",
+        article = Article(
+          title = "Jung, rebellisch, kapitalistisch: Kennen Sie schon die Anti-Klima-Kleber?",
+          link = "https://www.misesde.org/2023/08/jung-rebellisch-kapitalistisch-kennen-sie-schon-die-anti-klima-kleber/"
+        ),
+        publisher = Publisher.MISESDE,
+        lang = Lang.DE
+      )))
+    }
   }
 
-  def htmlResponse: String = {
+  private def htmlResponse: String = {
     s"""
        |<div class="pt-cv-view pt-cv-grid pt-cv-colsys pt-cv-same-height pt-cv-post-border pt-cv-content-hover pt-cv-clickable pt-cv-force-mask pt-cv-overlay-bottom pt-cv-pgregular" id="pt-cv-view-dacd42bydp"><div data-id="pt-cv-page-1" class="pt-cv-page" data-cvc="2" data-cvct="2" data-cvcm="1"><div class="col-md-6 col-sm-6 col-xs-12 pt-cv-content-item pt-cv-2-col" data-pid="31020"><div class="pt-cv-ifield"><div class="pt-cv-meta-fields" style="height: 57.8667px;"><span class="author"><a rel="author" class="molongui-disabled-link"><img alt="" src="https://www.misesde.org/wp-content/uploads/2011/04/mises_wappen1.jpg" srcset="https://www.misesde.org/wp-content/uploads/2011/04/mises_wappen1.jpg 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async"><span>LvMID</span></a></span><span class="entry-date"><span class="glyphicon glyphicon-calendar"></span> <time datetime="2023-10-13T07:40:18+02:00">13. Oktober 2023</time></span></div>
        |<div class="pt-cv-hover-wrapper"><a href="https://www.misesde.org/2023/10/die-heldenreise-des-buergers-vom-untertan-zum-souveraen/" class="_self pt-cv-href-thumbnail pt-cv-thumb-left cvplbd cvp-responsive-image img-thumbnail" target="_self" data-iw="520" data-ih="360" style="background-image: url(&quot;https://www.misesde.org/wp-content/uploads/2023/10/20231011-adobestock_129103370-520x360.jpeg&quot;);"><img width="520" height="360" src="https://www.misesde.org/wp-content/uploads/2023/10/20231011-adobestock_129103370-520x360.jpeg" class="pt-cv-thumbnail img-thumbnail pull-left skip-lazy " alt="Die Heldenreise des Bürgers. Vom Untertan zum Souverän" decoding="async" fetchpriority="high" itemprop="image"></a><div class="pt-cv-mask"><h4 class="pt-cv-animation-left pt-cv-title" style="height: 59.4px;"><a href="https://www.misesde.org/2023/10/die-heldenreise-des-buergers-vom-untertan-zum-souveraen/" class="_self cvplbd" target="_self" data-iw="520" data-ih="360">Die Heldenreise des Bürgers. Vom Untertan zum Souverän</a></h4></div></div></div></div>
