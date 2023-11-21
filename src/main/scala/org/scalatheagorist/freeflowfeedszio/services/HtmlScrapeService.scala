@@ -6,7 +6,7 @@ import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.RichHosts
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
-import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService.HeaderError
+import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService._
 import zio._
 import zio.http.Client
 import zio.http.Header
@@ -19,8 +19,8 @@ import javax.inject.Inject
 final class HtmlScrapeService @Inject()(httpClient: HttpClient, appConfig: AppConfig, fileStoreClient: FileStoreClient) {
   def stream: ZStream[Client, Throwable, Unit] =
     (for {
-      accept        <- ZStream.fromZIO(ZIO.fromEither[String, Header.Accept](Header.Accept.parse("text/html; charset=utf-8"))).mapError(HeaderError)
-      contentType   <- ZStream.fromZIO(ZIO.fromEither[String, Header.ContentType](Header.ContentType.parse("text/html; charset=utf-8"))).mapError(HeaderError)
+      accept        <- fromParsedHeaderType(Header.Accept.parse(headerValue))
+      contentType   <- fromParsedHeaderType(Header.ContentType.parse(headerValue))
       publisherUrls  = appConfig.hosts.toPublisherUrl[Client, Throwable](appConfig.initialReverse)
 
       _             <- ZStream.logInfo("start scraping")
@@ -38,6 +38,11 @@ final class HtmlScrapeService @Inject()(httpClient: HttpClient, appConfig: AppCo
     } yield ()).tapError(ex => ZIO.logError(ex.getMessage))
 }
 
-object HtmlScrapeService {
-  final case class HeaderError(header: String) extends Throwable(header)
+private object HtmlScrapeService {
+  private final case class HeaderError(header: String) extends Throwable(header)
+
+  private def fromParsedHeaderType[A](either: => Either[String, A]): ZStream[Any, HeaderError, A] =
+    ZStream.fromZIO(ZIO.fromEither(either)).mapError(HeaderError)
+
+  private val headerValue: String = "text/html; charset=utf-8"
 }

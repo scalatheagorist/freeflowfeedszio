@@ -13,8 +13,6 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault { self =>
-  private val zClientLayer: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
-
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     (for {
       baseDir    <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
@@ -22,17 +20,16 @@ object AppServer extends ZIOAppDefault { self =>
 
       confDir    <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
       _          <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
-      injector   <- ZIO.attempt(Guice.createInjector(new Module(confDir)))
 
-      port       <- ZIO.attempt(injector.instance[AppConfig].httpServerPort)
+      injector   <- ZIO.attempt(Guice.createInjector(new Module(confDir)))
       rssService <- ZIO.attempt(injector.instance[RSSService])
 
-      _          <- rssService.scrapeWithInterval.forkDaemon
+      _          <- rssService.runScraper.forkDaemon
 
-      _          <- ZIO.logInfo(s"Server started @ http://0.0.0.0:$port")
+      _          <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
       _          <- Server
                       .serve(Routes(rssService).withDefaultErrorResponse)
                       .timeout(Duration(600L, TimeUnit.SECONDS))
-                      .provide(Server.defaultWithPort(port))
-    } yield ()).provideLayer(zClientLayer).exitCode
+                      .provide(Server.defaultWithPort(8989))
+    } yield ()).provideLayer(ZLayer.suspend(Client.default)).exitCode
 }

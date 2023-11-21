@@ -14,6 +14,7 @@ import zio.Trace
 import zio.Unsafe
 
 import java.io.File
+import java.time.Clock
 
 final class Module[+R](
     configFile: File)(
@@ -21,6 +22,7 @@ final class Module[+R](
     trace: Trace
 ) extends AbstractModule with ScalaModule {
   private val logger = LoggerFactory.getLogger(classOf[Module[_]])
+  private val clock = Clock.systemUTC()
 
   override def configure(): Unit = {
     Unsafe.unsafe { implicit unsafe =>
@@ -30,6 +32,8 @@ final class Module[+R](
       }
     } match {
       case Exit.Success(appConfig) =>
+        bind[Clock].toInstance(clock)
+
         bind[AppConfig].toInstance(appConfig)
         bind[HttpClient].asEagerSingleton()
         bind[FileStoreConfig].toInstance(appConfig.fileStoreConfig)

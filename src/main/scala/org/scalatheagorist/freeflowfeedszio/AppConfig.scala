@@ -15,7 +15,6 @@ import java.io.File
 final case class AppConfig(
     hosts: List[PublisherHost],
     fileStoreConfig: FileStoreConfig,
-    httpServerPort: Int,
     scrapeConcurrency: Int,
     update: String,
     updateInterval: Int,
@@ -28,7 +27,6 @@ object AppConfig {
     show"""
        |hosts:           ${Hosts.show.show(appConfig.hosts)}
        |fileStoreConfig: ${appConfig.fileStoreConfig}
-       |port:            ${appConfig.httpServerPort}
        |concurrency:     ${appConfig.scrapeConcurrency}
        |update:          ${appConfig.update}
        |updateInterval:  ${appConfig.updateInterval}

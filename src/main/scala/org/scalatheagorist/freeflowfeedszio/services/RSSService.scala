@@ -14,6 +14,7 @@ import zio.http.Client
 import zio.json._
 import zio.stream.ZSink
 import zio.stream.ZStream
+import java.time.{Clock => JavaClock}
 
 import java.time.Duration
 import java.time.LocalDate
@@ -25,8 +26,11 @@ final class RSSService @Inject()(
     appConfig: AppConfig,
     htmlScrapeService: HtmlScrapeService,
     fileStoreClient: FileStoreClient,
-    rssBuilder: RSSBuilder
+    rssBuilder: RSSBuilder)(
+    implicit clock: JavaClock
 ) {
+  private val zioClock: Clock.ClockJava = Clock.ClockJava(clock)
+
   def generateFeeds(publisher: Option[Publisher], lang: Option[Lang]): ZStream[Any, Throwable, CharSequence] =
     rssBuilder.build(publisher, lang) {
       fileStoreClient.loadFromDir.flatMap { chunk =>
@@ -39,22 +43,24 @@ final class RSSService @Inject()(
       }
     }.tapError(ex => ZIO.logError(ex.getMessage))
 
-  def scrapeWithInterval: ZIO[Client, Throwable, Unit] = {
-    val targetTime = for {
-      time           <- ZIO.fromEither(LocalTime.parse(appConfig.update))
-      date           <- ZIO.attemptBlocking(LocalDate.now())
-      offsetDateTime  = OffsetDateTime.of(date, time, ZoneOffset.UTC)
-    } yield offsetDateTime
+  def runScraper: ZIO[Client, Throwable, Unit] = {
+    val targetTime =
+      for {
+        time           <- ZIO.fromEither(LocalTime.parse(appConfig.update))
+        date           <- ZIO.attemptBlocking(LocalDate.now(zioClock.clock))
+        offsetDateTime <- ZIO.attempt(OffsetDateTime.of(date, time, ZoneOffset.UTC))
+      } yield offsetDateTime
 
     targetTime.flatMap { targetTime =>
       def pushLoop: ZIO[Client, Throwable, Unit] =
         for {
-          currentTime   <- Clock.currentDateTime
+          currentTime   <- zioClock.currentDateTime
           delay         <- ZIO.attempt(Duration.between(currentTime, targetTime))
           adjustedDelay  = if (delay.isNegative) delay.plusHours(appConfig.updateInterval) else delay
 
           _             <- ZIO.sleep(adjustedDelay.toMillis.millis)
           _             <- htmlScrapeService.stream.run(ZSink.drain).forkDaemon
+                           // sleep 1 second to begin a new loop session without multiple runs at the moment
           _             <- ZIO.sleep(1.second)
 
           _             <- pushLoop
