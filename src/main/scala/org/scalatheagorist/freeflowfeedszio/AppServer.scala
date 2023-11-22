@@ -2,6 +2,7 @@ package org.scalatheagorist.freeflowfeedszio
 
 import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreClient
 import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
+import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
 import org.scalatheagorist.freeflowfeedszio.services.RSSService
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
@@ -15,31 +16,6 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault { self =>
-  private val clientLayer: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
-
-  private val clockLayer: ULayer[Clock] = ZLayer.succeed(Clock.systemUTC())
-
-  private val appConfigLayer: ZLayer[Any, Throwable, AppConfig] = {
-    ZLayer.fromZIO {
-      for {
-        baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
-        _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
-
-        confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
-        _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
-
-        layer   <- AppConfig.from(confDir)
-      } yield layer
-    }
-  }
-
-  private val fileStoreConfigLayer: ZLayer[Any, Throwable, FileStoreConfig] =
-    appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
-
-  private val fileStoreClientLayer = (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
-  private val htmlScrapeServiceLayer = (clientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> HtmlScrapeService.layer
-  private val rssServiceLayer = (clockLayer ++ RSSBuilder.layer ++ appConfigLayer ++ fileStoreClientLayer) >>> RSSService.layer
-
   override def run: ZIO[Any with ZIOAppArgs with Scope, Nothing, ExitCode] =
     (for {
       _          <- ZIO.serviceWith[RSSService](_.runScraper.forkDaemon)
@@ -47,7 +23,7 @@ object AppServer extends ZIOAppDefault { self =>
       _          <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
       _          <- server
     } yield ())
-      .provideLayer(clientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer)
+      .provideLayer(httpClientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer)
       .exitCode
 
   private def server: ZIO[RSSService, Throwable, Option[Nothing]] =
@@ -57,4 +33,33 @@ object AppServer extends ZIOAppDefault { self =>
         .timeout(Duration(600L, TimeUnit.SECONDS))
         .provide(Server.defaultWithPort(8989))
     ).provideLayer(Routes.live)
+
+  private lazy val clientLayer: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
+
+  private lazy val clockLayer: ULayer[Clock] = ZLayer.succeed(Clock.systemUTC())
+
+  private lazy val appConfigLayer: ZLayer[Any, Throwable, AppConfig] =
+    ZLayer.fromZIO {
+      for {
+        baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
+        _ <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
+
+        confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
+        _ <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
+
+        layer <- AppConfig.from(confDir)
+      } yield layer
+    }
+
+  private lazy val fileStoreConfigLayer: ZLayer[Any, Throwable, FileStoreConfig] =
+    appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
+
+  private lazy val httpClientLayer = clientLayer >>> HttpClient.layer
+
+  private lazy val fileStoreClientLayer =
+    (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
+  private lazy val htmlScrapeServiceLayer =
+    (httpClientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> HtmlScrapeService.layer
+  private lazy val rssServiceLayer =
+    (clockLayer ++ RSSBuilder.layer ++ appConfigLayer ++ fileStoreClientLayer) >>> RSSService.layer
 }
