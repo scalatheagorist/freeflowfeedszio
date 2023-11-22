@@ -42,12 +42,12 @@ object AppServer extends ZIOAppDefault { self =>
     ZLayer.fromZIO {
       for {
         baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
-        _ <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
+        _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
 
         confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
-        _ <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
+        _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
 
-        layer <- AppConfig.from(confDir)
+        layer   <- AppConfig.from(confDir)
       } yield layer
     }
 
@@ -58,8 +58,10 @@ object AppServer extends ZIOAppDefault { self =>
 
   private lazy val fileStoreClientLayer =
     (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
+
   private lazy val htmlScrapeServiceLayer =
     (httpClientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> HtmlScrapeService.layer
+
   private lazy val rssServiceLayer =
     (clockLayer ++ RSSBuilder.layer ++ appConfigLayer ++ fileStoreClientLayer) >>> RSSService.layer
 }
