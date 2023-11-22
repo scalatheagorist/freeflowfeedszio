@@ -37,8 +37,8 @@ final class RSSService @Inject()(
         ZStream(new String(chunk.toArray, "UTF-8").fromJson[RSSFeed]).flatMap {
           case Right(rssFeed) =>
             ZStream.succeed(rssFeed)
-          case Left(ex) =>
-            ZStream.empty <* ZStream.logWarning(s"could not parse json with message: $ex")
+          case Left(errorMsg) =>
+            ZStream.empty <* ZStream.logWarning(s"could not parse json with message: $errorMsg")
         }
       }
     }.tapError(ex => ZIO.logError(ex.getMessage))
@@ -47,7 +47,7 @@ final class RSSService @Inject()(
     val targetTime =
       for {
         time           <- ZIO.fromEither(LocalTime.parse(appConfig.update))
-        date           <- ZIO.attemptBlocking(LocalDate.now(zioClock.clock))
+        date           <- ZIO.attempt(LocalDate.now(zioClock.clock))
         offsetDateTime <- ZIO.attempt(OffsetDateTime.of(date, time, ZoneOffset.UTC))
       } yield offsetDateTime
 
