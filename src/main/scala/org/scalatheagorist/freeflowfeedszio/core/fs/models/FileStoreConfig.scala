@@ -1,10 +1,9 @@
 package org.scalatheagorist.freeflowfeedszio.core.fs.models
 
 import cats.Show
+import zio.ZLayer
 
-import javax.inject.Inject
-
-final case class FileStoreConfig @Inject()(concurrency: Int, path: String, suffix: String)
+final case class FileStoreConfig(concurrency: Int, path: String, suffix: String)
 
 object FileStoreConfig {
   implicit val show: Show[FileStoreConfig] = config =>
@@ -12,4 +11,6 @@ object FileStoreConfig {
        |    concurrency:${config.concurrency}
        |    dir:${config.path}
        |    suffix:${config.suffix}""".stripMargin
+
+  val live: ZLayer[Int with String, Nothing, FileStoreConfig] = ZLayer.fromFunction(FileStoreConfig.apply _)
 }

@@ -3,26 +3,40 @@ package org.scalatheagorist.freeflowfeedszio.view
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
 import org.scalatheagorist.freeflowfeedszio.publisher.Lang
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
+import zio.ULayer
+import zio.ZLayer
 import zio.stream.ZStream
 
 import java.io.IOException
-import javax.inject.Inject
 
-final class RSSBuilder @Inject()() {
+trait RSSBuilder {
   def build(
     publisher: Option[Publisher],
     lang: Option[Lang])(
     stream: ZStream[Any, IOException, RSSFeed]
-  ): ZStream[Any, IOException, String] = {
-    val cards =
-      publisher
-        .map(p => stream.filter(_.publisher == p))
-        .orElse(lang.map(l => stream.filter(_.lang == l)))
-        .getOrElse(stream)
-        .flatMap(feed => ZStream.succeed(generateCardElement(feed)))
+  ): ZStream[Any, IOException, String]
+}
 
-    header ++ startCards ++ cards ++ closeCards ++ footer
-  }
+object RSSBuilder {
+  val layer: ULayer[RSSBuilder] =
+    ZLayer.succeed {
+      new RSSBuilder {
+        def build(
+          publisher: Option[Publisher],
+          lang: Option[Lang])(
+          stream: ZStream[Any, IOException, RSSFeed]
+        ): ZStream[Any, IOException, String] = {
+          val cards =
+            publisher
+              .map(p => stream.filter(_.publisher == p))
+              .orElse(lang.map(l => stream.filter(_.lang == l)))
+              .getOrElse(stream)
+              .flatMap(feed => ZStream.succeed(generateCardElement(feed)))
+
+          header ++ startCards ++ cards ++ closeCards ++ footer
+        }
+      }
+    }
 
   private lazy val header = ZStream.succeed(getHeader)
   private lazy val footer = ZStream.succeed(getFooter)
