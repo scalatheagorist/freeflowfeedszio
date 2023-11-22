@@ -15,11 +15,11 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault { self =>
-  private val clientLive: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
+  private val clientLayer: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
 
-  private val clockLive: ULayer[Clock] = ZLayer.succeed(Clock.systemUTC())
+  private val clockLayer: ULayer[Clock] = ZLayer.succeed(Clock.systemUTC())
 
-  private val appConfigLive: ZLayer[Any, Throwable, AppConfig] = {
+  private val appConfigLayer: ZLayer[Any, Throwable, AppConfig] = {
     ZLayer.fromZIO {
       for {
         baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
@@ -33,6 +33,13 @@ object AppServer extends ZIOAppDefault { self =>
     }
   }
 
+  private val fileStoreConfigLayer: ZLayer[Any, Throwable, FileStoreConfig] =
+    appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
+
+  private val fileStoreClientLayer = (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
+  private val htmlScrapeServiceLayer = (clientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> HtmlScrapeService.layer
+  private val rssServiceLayer = (clockLayer ++ RSSBuilder.layer ++ appConfigLayer ++ fileStoreClientLayer) >>> RSSService.layer
+
   override def run: ZIO[Any with ZIOAppArgs with Scope, Nothing, ExitCode] =
     (for {
       _          <- ZIO.serviceWith[RSSService](_.runScraper.forkDaemon)
@@ -40,11 +47,7 @@ object AppServer extends ZIOAppDefault { self =>
       _          <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
       _          <- server
     } yield ())
-      .provideLayer(
-        ((appConfigLive ++ FileStoreConfig.live) >>> FileStoreClient.layer) ++
-        ((clientLive ++ appConfigLive ++ FileStoreConfig.live ++ FileStoreClient.layer) >>> HtmlScrapeService.layer) ++
-        ((clockLive ++ RSSBuilder.layer ++ appConfigLive ++ FileStoreClient.layer ++ HtmlScrapeService.layer) >>> RSSService.layer)
-      )
+      .provideLayer(clientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer)
       .exitCode
 
   private def server: ZIO[RSSService, Throwable, Option[Nothing]] =
