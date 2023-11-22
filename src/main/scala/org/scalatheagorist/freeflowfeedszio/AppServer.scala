@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit
 object AppServer extends ZIOAppDefault { self =>
   override def run: ZIO[Any with ZIOAppArgs with Scope, Nothing, ExitCode] =
     (for {
-      _          <- ZIO.serviceWith[RSSService](_.runScraper.forkDaemon)
+      _ <- ZIO.serviceWith[RSSService](_.runScraper.forkDaemon)
 
-      _          <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
-      _          <- server
+      _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
+      _ <- server
     } yield ())
       .provideLayer(httpClientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer)
       .exitCode
