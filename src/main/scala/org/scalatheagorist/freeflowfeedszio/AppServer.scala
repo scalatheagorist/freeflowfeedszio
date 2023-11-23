@@ -23,7 +23,7 @@ object AppServer extends ZIOAppDefault { self =>
       _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
       _ <- server
     } yield ())
-      .provideLayer(httpClientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer)
+      .provideLayer(mainLayer)
       .exitCode
 
   private def server: ZIO[RSSService, Throwable, Option[Nothing]] =
@@ -34,11 +34,14 @@ object AppServer extends ZIOAppDefault { self =>
         .provide(Server.defaultWithPort(8989))
     ).provideLayer(Routes.live)
 
-  private lazy val clientLayer: ZLayer[Any, Throwable, Client] = ZLayer.suspend(Client.default)
+  private lazy val mainLayer =
+    httpClientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer
 
-  private lazy val clockLayer: ULayer[Clock] = ZLayer.succeed(Clock.systemUTC())
+  private lazy val clientLayer = ZLayer.suspend(Client.default)
 
-  private lazy val appConfigLayer: ZLayer[Any, Throwable, AppConfig] =
+  private lazy val clockLayer = ZLayer.succeed(Clock.systemUTC())
+
+  private lazy val appConfigLayer =
     ZLayer.fromZIO {
       for {
         baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
@@ -51,10 +54,11 @@ object AppServer extends ZIOAppDefault { self =>
       } yield layer
     }
 
-  private lazy val fileStoreConfigLayer: ZLayer[Any, Throwable, FileStoreConfig] =
+  private lazy val fileStoreConfigLayer =
     appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
 
-  private lazy val httpClientLayer = clientLayer >>> HttpClient.layer
+  private lazy val httpClientLayer =
+    clientLayer >>> HttpClient.layer
 
   private lazy val fileStoreClientLayer =
     (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
