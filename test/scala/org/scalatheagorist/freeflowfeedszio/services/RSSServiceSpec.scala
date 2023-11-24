@@ -22,27 +22,25 @@ import zio.test.assertTrue
 object RSSServiceSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("RSSService") {
     test("generateFeeds") {
-      val fileStoreClient = mock[FileStoreClient]
-      val rssBuilder = mock[RSSBuilder]
-      val httpClient = mock[HttpClient]
+      val appConfig         = mock[AppConfig]
+      val fileStoreClient   = mock[FileStoreClient]
+      val rssBuilder        = mock[RSSBuilder]
+      val httpClient        = mock[HttpClient]
       val htmlScrapeService = mock[HtmlScrapeService]
+      val clock             = mock[java.time.Clock]
 
-      val clockLayer = ZLayer(ZIO.succeed(mock[java.time.Clock]))
-      val appConfigLayer = ZLayer(ZIO.succeed(mock[AppConfig]))
+      val clockLayer = ZLayer(ZIO.succeed(clock))
+      val appConfigLayer = ZLayer(ZIO.succeed(appConfig))
 
-      val fileStoreConfigLayer =
-        appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
+      val fileStoreConfigLayer = appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
 
       val clientLayer = ZLayer.suspend(Client.default)
 
-      val httpClientLayer =
-        clientLayer >>> ZLayer.succeed(httpClient)
+      val httpClientLayer = clientLayer >>> ZLayer.succeed(httpClient)
 
-      val fileStoreClientLayer =
-        (appConfigLayer ++ fileStoreConfigLayer) >>> ZLayer.succeed(fileStoreClient)
+      val fileStoreClientLayer = (appConfigLayer ++ fileStoreConfigLayer) >>> ZLayer.succeed(fileStoreClient)
 
-      val htmlScrapeServiceLayer =
-        (httpClientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> ZLayer.succeed(htmlScrapeService)
+      val htmlScrapeServiceLayer = (httpClientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> ZLayer.succeed(htmlScrapeService)
 
       val expectedJson = """{"author": "Schweizer Monat", "article": {"title": "\u00abMan findet die Macht  nie dort, wo man sie sucht\u00bb", "link": "https://schweizermonat.ch/man-findet-die-macht-nie-dort-wo-man-sie-sucht/"}, "publisher": "SCHWEIZER_MONAT", "lang": "DE"}""".stripMargin
 
