@@ -12,7 +12,7 @@ import zio.test.assertTrue
 
 object MisesDESpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("MisesDE") {
-    test("toRSSFeedStream") {
+    test("toRSSFeedStream must convert html code to a RSSFeed") {
       for {
         htmlResp <- ZIO.succeed(HtmlResponse(Publisher.MISESDE, htmlResponse))
         build    <- MisesDE.toRSSFeedStream(htmlResp).runLast

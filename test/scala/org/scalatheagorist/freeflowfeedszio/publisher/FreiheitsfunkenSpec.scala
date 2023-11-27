@@ -12,7 +12,7 @@ import zio.test.assertTrue
 
 object FreiheitsfunkenSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("Freiheitsfunken") {
-    test("toRSSFeedStream") {
+    test("toRSSFeedStream must convert html code to a RSSFeed") {
       for {
         freiheitsfunken <- ZIO.succeed(Freiheitsfunken("https://www.freiheitsfunken.de"))
         htmlResp        <- ZIO.succeed(HtmlResponse(Publisher.FREIHEITSFUNKEN, htmlResponse))

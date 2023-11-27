@@ -8,7 +8,7 @@ import zio.test._
 
 object EfMagazinSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("EfMagazin") {
-    test("toRSSFeedStream") {
+    test("toRSSFeedStream must convert html code to a RSSFeed") {
       for {
         efMagazin <- ZIO.succeed(EfMagazin("https://www.ef-magazin.de"))
         htmlResp  <- ZIO.succeed(HtmlResponse(Publisher.EFMAGAZIN, htmlResponse))

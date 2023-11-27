@@ -9,6 +9,7 @@ import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
+import zio.Scope
 import zio.ZIO
 import zio.ZLayer
 import zio.http.Body
@@ -35,7 +36,7 @@ object HtmlScrapeServiceSpec extends ZIOSpecDefault {
   private val fileStoreClientLayer =
     ZLayer.succeed(fileStoreClient)
 
-  override def spec = suite("HtmlScrapeService")(
+  override def spec: Spec[TestEnvironment with Scope, Any] = suite("HtmlScrapeService")(
     suite("stream") {
       test("must work") {
         // mock
