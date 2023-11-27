@@ -9,14 +9,10 @@ import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
 import zio.Chunk
-import zio.Scope
 import zio.ZIO
 import zio.ZLayer
-import zio.durationInt
 import zio.http.Client
 import zio.stream.ZStream
-import zio.test.Spec
-import zio.test.TestEnvironment
 import zio.test.ZIOSpecDefault
 import zio.test.assertTrue
 
