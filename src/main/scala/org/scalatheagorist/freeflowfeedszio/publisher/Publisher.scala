@@ -7,8 +7,6 @@ import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.PublisherUrl
 import org.scalatheagorist.freeflowfeedszio.util.RichURL.RichUrl
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
 import zio.stream.ZStream
 
 sealed trait Publisher extends Product with Serializable
@@ -17,28 +15,29 @@ object Publisher {
   case object EFMAGAZIN extends Publisher
   case object FREIHEITSFUNKEN extends Publisher
   case object MISESDE extends Publisher
-  case object SCHWEIZERMONAT extends Publisher
+  case object SCHWEIZER_MONAT extends Publisher
 
-  implicit val encoder: JsonEncoder[Publisher] = JsonEncoder.string.contramap {
-    case EFMAGAZIN       => "EFMAGAZIN"
-    case FREIHEITSFUNKEN => "FREIHEITSFUNKEN"
-    case MISESDE         => "MISESDE"
-    case SCHWEIZERMONAT  => "SCHWEIZERMONAT"
+  implicit val show: Show[Publisher] = Show {
+    case EFMAGAZIN        => "EFMAGAZIN"
+    case FREIHEITSFUNKEN  => "FREIHEITSFUNKEN"
+    case MISESDE          => "MISESDE"
+    case SCHWEIZER_MONAT  => "SCHWEIZER_MONAT"
   }
 
-  implicit val decoder: JsonDecoder[Publisher] = JsonDecoder.string.map {
-    case "EFMAGAZIN"       => EFMAGAZIN
-    case "FREIHEITSFUNKEN" => FREIHEITSFUNKEN
-    case "MISESDE"         => MISESDE
-    case "SCHWEIZERMONAT"  => SCHWEIZERMONAT
+  def from(publisher: String): Publisher = publisher match {
+    case "EFMAGAZIN"        => EFMAGAZIN
+    case "FREIHEITSFUNKEN"  => FREIHEITSFUNKEN
+    case "MISESDE"          => MISESDE
+    case "SCHWEIZER_MONAT"  => SCHWEIZER_MONAT
   }
 
-  def toRSSFeedStream(htmlResponse: HtmlResponse, url: PublisherUrl): ZStream[Any, Throwable, RSSFeed] = htmlResponse.publisher match {
-    case Publisher.EFMAGAZIN       => EfMagazin(url.url.toProtocolWithHost).toRSSFeedStream(htmlResponse)
-    case Publisher.FREIHEITSFUNKEN => Freiheitsfunken(url.url.toProtocolWithHost).toRSSFeedStream(htmlResponse)
-    case Publisher.MISESDE         => MisesDE.toRSSFeedStream(htmlResponse)
-    case Publisher.SCHWEIZERMONAT  => SchweizerMonat.toRSSFeedStream(htmlResponse)
-  }
+  def toRSSFeedStream(htmlResponse: HtmlResponse, url: PublisherUrl): ZStream[Any, Throwable, RSSFeed] =
+    htmlResponse.publisher match {
+      case Publisher.EFMAGAZIN        => EfMagazin(url.url.toProtocolWithHost).toRSSFeedStream(htmlResponse)
+      case Publisher.FREIHEITSFUNKEN  => Freiheitsfunken(url.url.toProtocolWithHost).toRSSFeedStream(htmlResponse)
+      case Publisher.MISESDE          => MisesDE.toRSSFeedStream(htmlResponse)
+      case Publisher.SCHWEIZER_MONAT  => SchweizerMonat.toRSSFeedStream(htmlResponse)
+    }
 }
 
 trait PublisherModel {
@@ -48,7 +47,7 @@ trait PublisherModel {
 
 final case class PublisherHost(url: String, path: String, pageTo: Int, publisher: Publisher) {
   def toPublisherUrls: List[(Publisher, String)] = publisher match {
-    case Publisher.SCHWEIZERMONAT => fromPaths
+    case Publisher.SCHWEIZER_MONAT => fromPaths
     case _ => fromPages
   }
 

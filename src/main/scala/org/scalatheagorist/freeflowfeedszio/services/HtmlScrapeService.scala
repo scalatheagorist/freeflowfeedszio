@@ -1,56 +1,60 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
 import org.scalatheagorist.freeflowfeedszio.AppConfig
-import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreClient
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.RichHosts
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import zio._
 import zio.http.Client
-import zio.http.Header
-import zio.http.Headers
 import zio.stream.ZPipeline.utf8Decode
 import zio.stream.ZStream
+
+import java.time.{Clock => JavaClock}
 
 trait HtmlScrapeService {
   def stream: ZStream[Client, Throwable, Unit]
 }
 
 object HtmlScrapeService {
-  val layer: ZLayer[HttpClient & AppConfig & FileStoreClient, Nothing, HtmlScrapeService] =
+  val layer: ZLayer[JavaClock & AppConfig & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
     ZLayer {
       for {
-        httpClient      <- ZIO.service[HttpClient]
         appConfig       <- ZIO.service[AppConfig]
-        fileStoreClient <- ZIO.service[FileStoreClient]
+        httpClient      <- ZIO.service[HttpClient]
+        databaseClient  <- ZIO.service[DatabaseClient]
+        clock           <- ZIO.service[JavaClock]
       } yield new HtmlScrapeService {
         override def stream: ZStream[Client, Throwable, Unit] =
           (for {
-            accept        <- fromParsedHeaderType(Header.Accept.parse(headerValue))
-            contentType   <- fromParsedHeaderType(Header.ContentType.parse(headerValue))
-            publisherUrls  = appConfig.hosts.toPublisherUrl[Client, Throwable](appConfig.initialReverse)
+            _             <- ZStream.logInfo(
+                               """
+                                 |
+                                 | start scraping
+                                 |
+                                 |""".stripMargin
+                             )
 
-            _             <- ZStream.logInfo("start scraping")
+            publisherUrls  = appConfig.hosts.toPublisherUrl(appConfig.initialReverse)
 
-            _             <- publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
-                               fileStoreClient.saveIntoDir(
-                                 (for {
-                                   _        <- ZStream.logInfo(s"scrape data from ${url.url.encode}")
-                                   response <- ZStream.fromZIO(httpClient.get(url.url, Headers(accept :: contentType :: Nil)))
-                                   htmlResp <- (response.body.asStream >>> utf8Decode).map(HtmlResponse(url.publisher, _))
-                                   rssFeed  <- Publisher.toRSSFeedStream(htmlResp, url)
-                                 } yield rssFeed).tapError(ex => ZIO.logWarning(ex.getMessage))
-                               ).tapError(ex => ZIO.logWarning(ex.getMessage))
-                             }
+            inserted       = databaseClient.insert(
+                               publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
+                                 ZStream.blocking {
+                                   (for {
+                                     response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))
+
+                                     _        <- ZStream.logInfo(s"STATUS ${response.status.code} from ${url.url.encode}")
+
+                                     decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode).orElse(ZStream.empty)
+                                     htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
+                                     rssFeed  <- Publisher.toRSSFeedStream(htmlResp, url).map(_.toDbRssFeeds(clock))
+                                   } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
+                                 }
+                               }.runCollect
+                             )
+            _              <- ZStream.fromZIO(inserted) // exec
           } yield ()).tapError(ex => ZIO.logError(ex.getMessage))
       }
     }
-
-  private final case class HeaderError(header: String) extends Throwable(header)
-
-  private def fromParsedHeaderType[A](either: => Either[String, A]): ZStream[Any, HeaderError, A] =
-    ZStream.fromZIO(ZIO.fromEither(either)).mapError(HeaderError)
-
-  private val headerValue: String = "text/html; charset=utf-8"
 }

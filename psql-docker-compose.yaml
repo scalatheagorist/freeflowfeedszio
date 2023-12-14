@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=freeflowfeedszio
+      - POSTGRES_PASSWORD=freeflowfeedszio
+    ports:
+      - '5432:5432'

@@ -18,7 +18,7 @@ case object SchweizerMonat extends PublisherModel {
         val author = "SchweizerMonat"
 
         (href, title).mapN { (link, title) =>
-          RSSFeed(author, Article(title, link), Publisher.SCHWEIZERMONAT, Lang.DE)
+          RSSFeed(author, Article(title, link), Publisher.SCHWEIZER_MONAT, Lang.DE)
         }
       }
   }

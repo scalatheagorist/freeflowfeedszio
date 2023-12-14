@@ -2,10 +2,12 @@ package org.scalatheagorist.freeflowfeedszio
 
 import cats.Show
 import cats.implicits.showInterpolator
-import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts
 import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
 import zio.IO
+import zio.ZIO
+import zio.ZLayer
 import zio.config._
 import zio.config.magnolia._
 import zio.config.typesafe.TypesafeConfigSource
@@ -14,7 +16,7 @@ import java.io.File
 
 final case class AppConfig(
     hosts: List[PublisherHost],
-    fileStoreConfig: FileStoreConfig,
+    databaseConfig: DatabaseConfig,
     scrapeConcurrency: Int,
     update: String,
     updateInterval: Int,
@@ -26,12 +28,25 @@ object AppConfig {
   implicit val show: Show[AppConfig] = appConfig =>
     show"""
        |hosts:           ${Hosts.show.show(appConfig.hosts)}
-       |fileStoreConfig: ${appConfig.fileStoreConfig}
+       |databaseConfig:  ${appConfig.databaseConfig}
        |concurrency:     ${appConfig.scrapeConcurrency}
        |update:          ${appConfig.update}
        |updateInterval:  ${appConfig.updateInterval}
        |initialReverse:  ${appConfig.initialReverse}
        |""".stripMargin
+
+  val live: ZLayer[Any, Throwable, AppConfig] =
+    ZLayer.fromZIO {
+      for {
+        baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
+        _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
+
+        confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
+        _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
+
+        config  <- AppConfig.from(confDir)
+      } yield config
+    }
 
   def from(file: File): IO[ReadError[String], AppConfig] =
     read(descriptor[AppConfig] from TypesafeConfigSource.fromHoconFile(file))

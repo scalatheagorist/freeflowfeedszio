@@ -1,19 +1,14 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
 import org.scalatheagorist.freeflowfeedszio.AppConfig
-import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
 import org.scalatheagorist.freeflowfeedszio.publisher.Lang
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
-import zio.&
-import zio.Clock
 import zio.Config.LocalTime
-import zio.ZIO
-import zio.ZLayer
-import zio.durationLong
+import zio._
 import zio.http.Client
-import zio.json._
 import zio.stream.ZSink
 import zio.stream.ZStream
 
@@ -24,31 +19,37 @@ import java.time.ZoneOffset
 import java.time.{Clock => JavaClock}
 
 trait RSSService {
-  def generateFeeds(publisher: Option[Publisher], lang: Option[Lang]): ZStream[Any, Throwable, CharSequence]
+  def getFeeds(
+    page: Int,
+    pageSize: Int,
+    publisher: Option[Publisher],
+    lang: Option[Lang],
+    term: Option[String]
+  ): ZStream[Any, Throwable, String]
+
   def runScraper: ZIO[Client, Throwable, Unit]
 }
 
 object RSSService {
-  val layer: ZLayer[JavaClock & RSSBuilder & FileStoreClient & HtmlScrapeService & AppConfig, Nothing, RSSService] =
+  val layer: ZLayer[JavaClock & AppConfig & RSSBuilder & DatabaseClient & HtmlScrapeService, Nothing, RSSService] =
     ZLayer {
       for {
         appConfig         <- ZIO.service[AppConfig]
         htmlScrapeService <- ZIO.service[HtmlScrapeService]
-        fileStoreClient   <- ZIO.service[FileStoreClient]
+        databaseClient    <- ZIO.service[DatabaseClient]
         rssBuilder        <- ZIO.service[RSSBuilder]
-        clock             <- ZIO.service[JavaClock]
+        zioClock          <- ZIO.serviceWith[JavaClock](Clock.ClockJava)
       } yield new RSSService {
-        private val zioClock: Clock.ClockJava = Clock.ClockJava(clock)
-
-        def generateFeeds(publisher: Option[Publisher], lang: Option[Lang]): ZStream[Any, Throwable, CharSequence] =
+        def getFeeds(
+          page: Int,
+          pageSize: Int,
+          publisher: Option[Publisher],
+          lang: Option[Lang],
+          term: Option[String]
+        ): ZStream[Any, Throwable, String] =
           rssBuilder.build(publisher, lang) {
-            fileStoreClient.loadFromDir.flatMap { chunk =>
-              ZStream(new String(chunk.toArray, "UTF-8").fromJson[RSSFeed]).flatMap {
-                case Right(rssFeed) =>
-                  ZStream.succeed(rssFeed)
-                case Left(errorMsg) =>
-                  ZStream.empty <* ZStream.logWarning(s"could not parse json with message: $errorMsg")
-              }
+            databaseClient.select(page, pageSize, publisher, lang, term).flatMap { rssFeed =>
+              ZStream.fromZIO(ZIO.attempt(RSSFeed.from(rssFeed)))
             }
           }.tapError(ex => ZIO.logError(ex.getMessage))
 
@@ -60,6 +61,7 @@ object RSSService {
               offsetDateTime <- ZIO.attempt(OffsetDateTime.of(date, time, ZoneOffset.UTC))
             } yield offsetDateTime
 
+
           targetTime.flatMap { targetTime =>
             def pushLoop: ZIO[Client, Throwable, Unit] =
               for {
@@ -69,7 +71,7 @@ object RSSService {
 
                 _             <- ZIO.sleep(adjustedDelay.toMillis.millis)
                 _             <- htmlScrapeService.stream.run(ZSink.drain).forkDaemon
-                // sleep 1 second to begin a new loop session without multiple runs at the moment
+                                 // sleep 1 second to begin a new loop session without multiple runs at the moment
                 _             <- ZIO.sleep(1.second)
 
                 _             <- pushLoop
