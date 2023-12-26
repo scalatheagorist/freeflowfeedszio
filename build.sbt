@@ -28,8 +28,6 @@ lazy val root = (project in file("."))
     Compile / scalacOptions ++= (Seq("-nowarn") ++ options),
     Test / resourceDirectory := baseDirectory.value / "test" / "resources",
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.4.7" % Runtime,
-
       "org.typelevel" %% "cats-core" % "2.10.0",
 
       "org.postgresql" % "postgresql" % "42.7.1",

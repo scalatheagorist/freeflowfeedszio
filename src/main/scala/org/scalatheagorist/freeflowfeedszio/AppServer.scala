@@ -16,29 +16,31 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault {
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
-    val server: ZIO[RSSService, Throwable, Option[Nothing]] =
-      ZIO.serviceWithZIO[Routes](routes =>
-        Server
-          .serve(routes.apply.withDefaultErrorResponse)
-          .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
-          .provide(Server.defaultWithPort(8989))
-      ).provideLayer(Routes.layer)
+  private val server: ZIO[AppConfig & RSSService, Throwable, Option[Nothing]] =
+    ZIO.serviceWithZIO[Routes](routes =>
+      Server
+        .serve(routes.apply.withDefaultErrorResponse)
+        .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
+        .provide(Server.defaultWithPort(8989))
+    ).provideLayer(Routes.layer)
 
-    val zioHttpClient = ZLayer.suspend(Client.default)
+  private val zioHttpClient =
+    ZLayer.suspend(Client.default)
 
-    val clock = ZLayer.succeed(Clock.systemUTC())
+  private val clock =
+    ZLayer.succeed(Clock.systemUTC())
 
-    val databaseClientLive =
-      (AppConfig.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
+  private val databaseClientLive =
+    (AppConfig.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
 
-    val htmlScrapeServiceLive =
-      (clock ++ AppConfig.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
+  private val htmlScrapeServiceLive =
+    (clock ++ AppConfig.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
 
-    val rssServiceLive =
-      (clock ++ AppConfig.live ++ databaseClientLive ++ RSSBuilder.layer ++ htmlScrapeServiceLive) >>> RSSService.layer
+  private val rssServiceLive =
+    (clock ++ AppConfig.live ++ databaseClientLive ++ RSSBuilder.layer ++ htmlScrapeServiceLive) >>> RSSService.layer
 
-    // app start
+  // start server
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.serviceWithZIO[AppConfig] { conf =>
       (for {
         _ <- ZIO.logInfo(conf.show)
@@ -47,7 +49,6 @@ object AppServer extends ZIOAppDefault {
 
         _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
         _ <- server
-      } yield ()).provideLayer(rssServiceLive)
-    }
-  }.provideLayer(AppConfig.live)
+      } yield ()).provideLayer(AppConfig.live ++ rssServiceLive)
+    }.provideLayer(AppConfig.live)
 }

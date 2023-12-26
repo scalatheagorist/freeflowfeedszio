@@ -8,6 +8,5 @@ object DatabaseConfig {
   implicit val show: Show[DatabaseConfig] = config =>
     s"""
        |    url:${config.url}
-       |    username:${config.username}
-       """.stripMargin
+       |    username:${config.username}""".stripMargin
 }
