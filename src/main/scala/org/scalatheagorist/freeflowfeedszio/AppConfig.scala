@@ -5,7 +5,6 @@ import cats.implicits.showInterpolator
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts
 import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
-import zio.IO
 import zio.ZIO
 import zio.ZLayer
 import zio.config._
@@ -20,8 +19,8 @@ final case class AppConfig(
     scrapeConcurrency: Int,
     update: String,
     updateInterval: Int,
-    // initial load of first scraped elements
-    initialReverse: Boolean
+    initialReverse: Boolean, // initial load for the first scraped elements
+    pageSize: Int
 )
 
 object AppConfig {
@@ -33,6 +32,7 @@ object AppConfig {
        |update:          ${appConfig.update}
        |updateInterval:  ${appConfig.updateInterval}
        |initialReverse:  ${appConfig.initialReverse}
+       |pageSize:        ${appConfig.pageSize}
        |""".stripMargin
 
   val live: ZLayer[Any, Throwable, AppConfig] =
@@ -44,10 +44,7 @@ object AppConfig {
         confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
         _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
 
-        config  <- AppConfig.from(confDir)
+        config  <- read(descriptor[AppConfig] from TypesafeConfigSource.fromHoconFile(confDir))
       } yield config
     }
-
-  def from(file: File): IO[ReadError[String], AppConfig] =
-    read(descriptor[AppConfig] from TypesafeConfigSource.fromHoconFile(file))
 }
