@@ -14,7 +14,7 @@ object SchweizerMonatSpec extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment with Scope, Any] = suite("SchweizerMonat") {
     test("toRSSFeedStream") {
       for {
-        htmlResp <- ZIO.succeed(HtmlResponse(Publisher.SCHWEIZERMONAT, htmlResponse))
+        htmlResp <- ZIO.succeed(HtmlResponse(Publisher.SCHWEIZER_MONAT, htmlResponse))
         build    <- SchweizerMonat.toRSSFeedStream(htmlResp).runLast
       } yield assertTrue(build.contains(RSSFeed(
         author = "SchweizerMonat",
@@ -22,7 +22,7 @@ object SchweizerMonatSpec extends ZIOSpecDefault {
           title = "How the Revolution of 1848 <br /> Enabled the Geneva Conventions",
           link = "https://schweizermonat.ch/how-the-revolution-of-1848-enabled-the-geneva-conventions/"
         ),
-        publisher = Publisher.SCHWEIZERMONAT,
+        publisher = Publisher.SCHWEIZER_MONAT,
         lang = Lang.DE
       )))
     }

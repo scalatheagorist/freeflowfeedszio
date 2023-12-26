@@ -30,12 +30,12 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.4.7" % Runtime,
 
-      "net.codingwell" %% "scala-guice" % "5.1.1",
-
       "org.typelevel" %% "cats-core" % "2.10.0",
 
-      "dev.zio" %% "zio" % "2.0.18",
-      "dev.zio" %% "zio-streams" % "2.0.18",
+      "org.postgresql" % "postgresql" % "42.7.1",
+
+      "dev.zio" %% "zio" % "2.0.13",
+      "dev.zio" %% "zio-streams" % "2.0.13",
       "dev.zio" %% "zio-interop-cats" % "23.1.0.0",
       "dev.zio" %% "zio-config" % "3.0.7",
       "dev.zio" %% "zio-config-magnolia" % "3.0.7",
@@ -44,6 +44,8 @@ lazy val root = (project in file("."))
       "dev.zio" %% "zio-logging" % "2.1.14",
       "dev.zio" %% "zio-logging-slf4j" % "2.1.14",
       "dev.zio" %% "zio-http" % "3.0.0-RC2",
+
+      "org.xerial" % "sqlite-jdbc" % "3.44.1.0",
 
       "net.ruippeixotog" %% "scala-scraper" % "3.1.0",
 

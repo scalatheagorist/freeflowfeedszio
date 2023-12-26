@@ -1,8 +1,9 @@
 package org.scalatheagorist.freeflowfeedszio
 
-import org.scalatheagorist.freeflowfeedszio.core.fs.FileStoreClient
-import org.scalatheagorist.freeflowfeedszio.core.fs.models.FileStoreConfig
+import cats.implicits.toShow
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseConnectionService
 import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
 import org.scalatheagorist.freeflowfeedszio.services.RSSService
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
@@ -11,61 +12,42 @@ import zio.ZIOAppDefault
 import zio._
 import zio.http._
 
-import java.io.File
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 
-object AppServer extends ZIOAppDefault { self =>
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Nothing, ExitCode] =
-    (for {
-      _ <- ZIO.serviceWith[RSSService](_.runScraper.forkDaemon)
+object AppServer extends ZIOAppDefault {
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
+    val server: ZIO[RSSService, Throwable, Option[Nothing]] =
+      ZIO.serviceWithZIO[Routes](routes =>
+        Server
+          .serve(routes.apply.withDefaultErrorResponse)
+          .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
+          .provide(Server.defaultWithPort(8989))
+      ).provideLayer(Routes.layer)
 
-      _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
-      _ <- server
-    } yield ())
-      .provideLayer(mainLayer)
-      .exitCode
+    val zioHttpClient = ZLayer.suspend(Client.default)
 
-  private def server: ZIO[RSSService, Throwable, Option[Nothing]] =
-    ZIO.serviceWithZIO[Routes](routes =>
-      Server
-        .serve(routes.apply.withDefaultErrorResponse)
-        .timeout(Duration(600L, TimeUnit.SECONDS))
-        .provide(Server.defaultWithPort(8989))
-    ).provideLayer(Routes.live)
+    val clock = ZLayer.succeed(Clock.systemUTC())
 
-  private lazy val mainLayer =
-    httpClientLayer >>> fileStoreClientLayer >>> htmlScrapeServiceLayer >>> rssServiceLayer
+    val databaseClientLive =
+      (AppConfig.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
 
-  private lazy val clientLayer = ZLayer.suspend(Client.default)
+    val htmlScrapeServiceLive =
+      (clock ++ AppConfig.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
 
-  private lazy val clockLayer = ZLayer.succeed(Clock.systemUTC())
+    val rssServiceLive =
+      (clock ++ AppConfig.live ++ databaseClientLive ++ RSSBuilder.layer ++ htmlScrapeServiceLive) >>> RSSService.layer
 
-  private lazy val appConfigLayer =
-    ZLayer.fromZIO {
-      for {
-        baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
-        _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
+    // app start
+    ZIO.serviceWithZIO[AppConfig] { conf =>
+      (for {
+        _ <- ZIO.logInfo(conf.show)
 
-        confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
-        _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
+        _ <- ZIO.serviceWithZIO[RSSService](_.runScraper.provideLayer(zioHttpClient).forkDaemon)
 
-        layer   <- AppConfig.from(confDir)
-      } yield layer
+        _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
+        _ <- server
+      } yield ()).provideLayer(rssServiceLive)
     }
-
-  private lazy val fileStoreConfigLayer =
-    appConfigLayer >>> ZLayer(ZIO.service[AppConfig].map(_.fileStoreConfig))
-
-  private lazy val httpClientLayer =
-    clientLayer >>> HttpClient.layer
-
-  private lazy val fileStoreClientLayer =
-    (appConfigLayer ++ fileStoreConfigLayer) >>> FileStoreClient.layer
-
-  private lazy val htmlScrapeServiceLayer =
-    (httpClientLayer ++ appConfigLayer ++ fileStoreClientLayer) >>> HtmlScrapeService.layer
-
-  private lazy val rssServiceLayer =
-    (clockLayer ++ RSSBuilder.layer ++ appConfigLayer ++ fileStoreClientLayer) >>> RSSService.layer
+  }.provideLayer(AppConfig.live)
 }
