@@ -18,6 +18,13 @@ trait HtmlScrapeService {
 }
 
 object HtmlScrapeService {
+  private val scrapeInfo =
+    """
+      |
+      | start scraping
+      |
+      |""".stripMargin
+
   val layer: ZLayer[JavaClock & AppConfig & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
     ZLayer {
       for {
@@ -28,17 +35,11 @@ object HtmlScrapeService {
       } yield new HtmlScrapeService {
         override def stream: ZStream[Client, Throwable, Unit] =
           (for {
-            _             <- ZStream.logInfo(
-                               """
-                                 |
-                                 | start scraping
-                                 |
-                                 |""".stripMargin
-                             )
+            _             <- ZStream.logInfo(scrapeInfo)
 
             publisherUrls  = appConfig.hosts.toPublisherUrl(appConfig.initialReverse)
 
-            inserted       = databaseClient.insert(
+            inserted       = databaseClient.insert(stream =
                                publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
                                  ZStream.blocking {
                                    (for {
