@@ -1,6 +1,6 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
-import org.scalatheagorist.freeflowfeedszio.AppConfig
+import org.scalatheagorist.freeflowfeedszio.Configuration
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
 import org.scalatheagorist.freeflowfeedszio.publisher.Lang
@@ -32,16 +32,16 @@ trait RSSService {
 }
 
 object RSSService {
-  val layer: ZLayer[JavaClock & AppConfig & RSSBuilder & DatabaseClient & HtmlScrapeService, Nothing, RSSService] =
+  val layer: ZLayer[JavaClock & Configuration & RSSBuilder & DatabaseClient & HtmlScrapeService, Nothing, RSSService] =
     ZLayer {
       (
-        ZIO.service[AppConfig],
+        ZIO.service[Configuration],
         ZIO.service[HtmlScrapeService],
         ZIO.service[DatabaseClient],
         ZIO.service[RSSBuilder],
         ZIO.serviceWith[JavaClock](Clock.ClockJava)
       ).mapN {
-        (appConfig, htmlScrapeService, databaseClient, rssBuilder, zioClock) =>
+        (configuration, htmlScrapeService, databaseClient, rssBuilder, zioClock) =>
           new RSSService {
             def getFeeds(
               page: Int,
@@ -59,7 +59,7 @@ object RSSService {
             def runScraper: ZIO[Client, Throwable, Unit] = {
               val targetTime =
                 for {
-                  time           <- ZIO.fromEither(LocalTime.parse(appConfig.update))
+                  time           <- ZIO.fromEither(LocalTime.parse(configuration.update))
                   date           <- ZIO.attempt(LocalDate.now(zioClock.clock))
                   offsetDateTime <- ZIO.attempt(OffsetDateTime.of(date, time, ZoneOffset.UTC))
                 } yield offsetDateTime
@@ -70,7 +70,7 @@ object RSSService {
                   for {
                     currentTime   <- zioClock.currentDateTime
                     delay         <- ZIO.attempt(Duration.between(currentTime, targetTime))
-                    adjustedDelay  = if (delay.isNegative) delay.plusHours(appConfig.updateInterval) else delay
+                    adjustedDelay  = if (delay.isNegative) delay.plusHours(configuration.updateInterval) else delay
 
                     _             <- ZIO.sleep(adjustedDelay.toMillis.millis)
                     _             <- htmlScrapeService.stream.run(ZSink.drain).forkDaemon
@@ -83,7 +83,7 @@ object RSSService {
                 if (targetTime.isAfter(OffsetDateTime.MIN) && targetTime.isBefore(OffsetDateTime.MAX))
                   pushLoop
                 else
-                  ZIO.logError(s"invalid time: ${appConfig.update}")
+                  ZIO.logError(s"invalid time: ${configuration.update}")
               }
             }
           }

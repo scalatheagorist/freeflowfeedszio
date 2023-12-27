@@ -1,6 +1,6 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
-import org.scalatheagorist.freeflowfeedszio.AppConfig
+import org.scalatheagorist.freeflowfeedszio.Configuration
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
@@ -26,24 +26,24 @@ object HtmlScrapeService {
       |
       |""".stripMargin
 
-  val layer: ZLayer[JavaClock & AppConfig & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
+  val layer: ZLayer[JavaClock & Configuration & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
     ZLayer {
       (
-        ZIO.service[AppConfig],
+        ZIO.service[Configuration],
         ZIO.service[HttpClient],
         ZIO.service[DatabaseClient],
         ZIO.service[JavaClock]
       ).mapN(
-        (appConfig, httpClient, databaseClient, clock) =>
+        (configuration, httpClient, databaseClient, clock) =>
           new HtmlScrapeService {
             override def stream: ZStream[Client, Throwable, Unit] =
               (for {
                 _             <- ZStream.logInfo(scrapeInfo)
 
-                publisherUrls  = appConfig.hosts.toPublisherUrl(appConfig.initialReverse)
+                publisherUrls  = configuration.hosts.toPublisherUrl(configuration.initialReverse)
 
                 inserted       = databaseClient.insert(stream =
-                                   publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
+                                   publisherUrls.flatMapPar(configuration.scrapeConcurrency) { url =>
                                      ZStream.blocking {
                                        (for {
                                          response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))

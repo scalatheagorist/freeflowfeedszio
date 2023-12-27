@@ -16,7 +16,7 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault {
-  private val server: ZIO[AppConfig & RSSService, Throwable, Option[Nothing]] =
+  private val server: ZIO[Configuration & RSSService, Throwable, Option[Nothing]] =
     ZIO.serviceWithZIO[Routes](routes =>
       Server
         .serve(routes.apply.withDefaultErrorResponse)
@@ -31,24 +31,24 @@ object AppServer extends ZIOAppDefault {
     ZLayer.succeed(Clock.systemUTC())
 
   private val databaseClientLive =
-    (AppConfig.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
+    (Configuration.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
 
   private val htmlScrapeServiceLive =
-    (clock ++ AppConfig.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
+    (clock ++ Configuration.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
 
   private val rssServiceLive =
-    (clock ++ AppConfig.live ++ databaseClientLive ++ RSSBuilder.layer ++ htmlScrapeServiceLive) >>> RSSService.layer
+    (clock ++ Configuration.live ++ databaseClientLive ++ RSSBuilder.layer ++ htmlScrapeServiceLive) >>> RSSService.layer
 
   // start server
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
-    ZIO.serviceWithZIO[AppConfig] { conf =>
+    ZIO.serviceWithZIO[Configuration] { configuration =>
       (for {
-        _ <- ZIO.logInfo(conf.show)
+        _ <- ZIO.logInfo(configuration.show)
 
         _ <- ZIO.serviceWithZIO[RSSService](_.runScraper.provideLayer(zioHttpClient).forkDaemon)
 
         _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
         _ <- server
-      } yield ()).provideLayer(AppConfig.live ++ rssServiceLive)
-    }.provideLayer(AppConfig.live)
+      } yield ()).provideLayer(Configuration.live ++ rssServiceLive)
+    }.provideLayer(Configuration.live)
 }

@@ -3,7 +3,7 @@ package org.scalatheagorist.freeflowfeedszio.services
 import org.mockito.ArgumentMatchersSugar.*
 import org.mockito.IdiomaticMockito.StubbingOps
 import org.mockito.MockitoSugar.mock
-import org.scalatheagorist.freeflowfeedszio.AppConfig
+import org.scalatheagorist.freeflowfeedszio.Configuration
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
 import zio.Chunk

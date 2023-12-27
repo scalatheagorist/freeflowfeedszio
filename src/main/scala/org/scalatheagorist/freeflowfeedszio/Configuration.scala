@@ -13,7 +13,7 @@ import zio.config.typesafe.TypesafeConfigSource
 
 import java.io.File
 
-final case class AppConfig(
+final case class Configuration(
     hosts: List[PublisherHost],
     databaseConfig: DatabaseConfig,
     scrapeConcurrency: Int,
@@ -23,8 +23,8 @@ final case class AppConfig(
     pageSize: Int
 )
 
-object AppConfig {
-  implicit val show: Show[AppConfig] = appConfig =>
+object Configuration {
+  implicit val show: Show[Configuration] = appConfig =>
     show"""
        |hosts:           ${Hosts.show.show(appConfig.hosts)}
        |databaseConfig:  ${appConfig.databaseConfig}
@@ -35,7 +35,7 @@ object AppConfig {
        |pageSize:        ${appConfig.pageSize}
        |""".stripMargin
 
-  val live: ZLayer[Any, Throwable, AppConfig] =
+  val live: ZLayer[Any, Throwable, Configuration] =
     ZLayer.fromZIO {
       for {
         baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
@@ -44,7 +44,7 @@ object AppConfig {
         confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
         _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
 
-        config  <- read(descriptor[AppConfig] from TypesafeConfigSource.fromHoconFile(confDir))
+        config  <- read(descriptor[Configuration] from TypesafeConfigSource.fromHoconFile(confDir))
       } yield config
     }
 }
