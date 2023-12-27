@@ -8,6 +8,7 @@ import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.RichHosts
 import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
 import zio._
 import zio.http.Client
+import zio.prelude.AssociativeBothTuple4Ops
 import zio.stream.ZPipeline.utf8Decode
 import zio.stream.ZStream
 
@@ -27,35 +28,38 @@ object HtmlScrapeService {
 
   val layer: ZLayer[JavaClock & AppConfig & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
     ZLayer {
-      for {
-        appConfig       <- ZIO.service[AppConfig]
-        httpClient      <- ZIO.service[HttpClient]
-        databaseClient  <- ZIO.service[DatabaseClient]
-        clock           <- ZIO.service[JavaClock]
-      } yield new HtmlScrapeService {
-        override def stream: ZStream[Client, Throwable, Unit] =
-          (for {
-            _             <- ZStream.logInfo(scrapeInfo)
+      (
+        ZIO.service[AppConfig],
+        ZIO.service[HttpClient],
+        ZIO.service[DatabaseClient],
+        ZIO.service[JavaClock]
+      ).mapN(
+        (appConfig, httpClient, databaseClient, clock) =>
+          new HtmlScrapeService {
+            override def stream: ZStream[Client, Throwable, Unit] =
+              (for {
+                _             <- ZStream.logInfo(scrapeInfo)
 
-            publisherUrls  = appConfig.hosts.toPublisherUrl(appConfig.initialReverse)
+                publisherUrls  = appConfig.hosts.toPublisherUrl(appConfig.initialReverse)
 
-            inserted       = databaseClient.insert(stream =
-                               publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
-                                 ZStream.blocking {
-                                   (for {
-                                     response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))
+                inserted       = databaseClient.insert(stream =
+                                   publisherUrls.flatMapPar(appConfig.scrapeConcurrency) { url =>
+                                     ZStream.blocking {
+                                       (for {
+                                         response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))
 
-                                     _        <- ZStream.logInfo(s"STATUS ${response.status.code} from ${url.url.encode}")
+                                         _        <- ZStream.logInfo(s"STATUS ${response.status.code} from ${url.url.encode}")
 
-                                     decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode).orElse(ZStream.empty)
-                                     htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
-                                     rssFeed  <- Publisher.toRSSFeedStream(htmlResp, url).map(_.toDbRssFeeds(clock))
-                                   } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
-                                 }
-                               }.runCollect
-                             )
-            _              <- ZStream.fromZIO(inserted) // exec
-          } yield ()).tapError(ex => ZIO.logError(ex.getMessage))
-      }
+                                         decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode).orElse(ZStream.empty)
+                                         htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
+                                         rssFeed  <- Publisher.toRSSFeedStream(htmlResp, url).map(_.toDbRssFeeds(clock))
+                                       } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
+                                     }
+                                   }.runCollect
+                                 )
+                _              <- ZStream.fromZIO(inserted) // exec
+              } yield ()).tapError(ex => ZIO.logError(ex.getMessage))
+          }
+      )
     }
 }
