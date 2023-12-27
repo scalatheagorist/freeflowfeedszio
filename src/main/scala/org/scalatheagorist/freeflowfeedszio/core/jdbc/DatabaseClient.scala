@@ -18,7 +18,7 @@ trait DatabaseClient {
     searchTerm: Option[String]
   ): ZStream[Any, Throwable, RssFeeds]
 
-  def insert(stream: ZIO[Client, Throwable, Chunk[RssFeeds]]): ZIO[Client, Throwable, Unit]
+  def insert(stream: ZStream[Client, Throwable, RssFeeds]): ZStream[Client, Throwable, Unit]
 }
 
 object DatabaseClient {
@@ -32,8 +32,8 @@ object DatabaseClient {
             publisher: Option[Publisher],
             lang: Option[Lang],
             searchTerm: Option[String]
-          ): ZStream[Any, Throwable, RssFeeds] = {
-            val feeds =
+          ): ZStream[Any, Throwable, RssFeeds] =
+            ZStream.fromIteratorZIO(
               for {
                 rs       <- RssFeeds.selectQuery(publisher, lang, searchTerm, pageSize, page * pageSize)
                 iterator <- ZIO.attempt {
@@ -42,17 +42,17 @@ object DatabaseClient {
                                 override def next(): RssFeeds = RssFeeds.from(rs)
                               }
                             }
-              } yield iterator.toList
+              } yield iterator
+            )
 
-            ZStream.fromIterableZIO(feeds)
-          }
-
-          override def insert(feeds: ZIO[Client, Throwable, Chunk[RssFeeds]]): ZIO[Client, Throwable, Unit] =
-            feeds.flatMap { feeds =>
-              ZIO.blocking {
-                RssFeeds
-                  .insertQuery(feeds)
-                  .catchAll(err => ZIO.fail(new RuntimeException(s"Error inserting data: ${err.getMessage}")))
+          override def insert(feeds: ZStream[Client, Throwable, RssFeeds]): ZStream[Client, Throwable, Unit] =
+            feeds.chunks.flatMap { feeds =>
+              ZStream.blocking {
+                ZStream.fromZIO {
+                  RssFeeds
+                    .insertQuery(feeds)
+                    .catchAll(err => ZIO.fail(new RuntimeException(s"Error inserting data: ${err.getMessage}")))
+                }
               }
             }
         }

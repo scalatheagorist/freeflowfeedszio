@@ -42,7 +42,7 @@ object HtmlScrapeService {
 
                 publisherUrls  = configuration.hosts.toPublisherUrl(configuration.initialReverse)
 
-                inserted       = databaseClient.insert(stream =
+                _             <- databaseClient.insert(stream =
                                    publisherUrls.flatMapPar(configuration.scrapeConcurrency) { url =>
                                      ZStream.blocking {
                                        (for {
@@ -55,9 +55,8 @@ object HtmlScrapeService {
                                          rssFeed  <- Publisher.toRSSFeedStream(htmlResp, url).map(_.toDbRssFeeds(clock))
                                        } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
                                      }
-                                   }.runCollect
+                                   }
                                  )
-                _              <- ZStream.fromZIO(inserted) // exec
               } yield ()).tapError(ex => ZIO.logError(ex.getMessage))
           }
       )
