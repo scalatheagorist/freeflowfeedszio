@@ -14,12 +14,14 @@ object DatabaseConnectionService {
       Credentials(conf.databaseConfig.url, conf.databaseConfig.username, conf.databaseConfig.password)
   }
 
+  private val statusSkeleton = "datasource connection"
+
   val databaseLive: ZLayer[Configuration, RuntimeException, Connection] = ZLayer.fromZIO {
     (for {
       config <- ZIO.service[Configuration]
       cred   <- ZIO.succeed(Credentials.from(config))
       conn   <- ZIO.attemptBlocking(DriverManager.getConnection(cred.url, cred.username, cred.password))
-      _      <- if (conn.isClosed) ZIO.logInfo("datasource connection failed") else ZIO.logInfo("datasource created successfully")
+      _      <- if (conn.isClosed) ZIO.logInfo(s"$statusSkeleton failed") else ZIO.logInfo(s"$statusSkeleton successfully")
     } yield conn).catchAll(err => ZIO.fail(new RuntimeException(s"Error creating data source: ${err.getMessage}")))
   }
 }

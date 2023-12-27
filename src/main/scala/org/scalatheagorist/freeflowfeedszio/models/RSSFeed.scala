@@ -13,13 +13,13 @@ final case class RSSFeed(author: String, article: Article, publisher: Publisher,
 object RSSFeed {
   def from(rssFeeds: RssFeeds): RSSFeed =
     RSSFeed(
-      author = rssFeeds.author,
+      author  = rssFeeds.author,
       article = Article(
         title = rssFeeds.title,
-        link = rssFeeds.link
+        link  = rssFeeds.link
       ),
       publisher = Publisher.from(rssFeeds.publisher),
-      lang = Lang.from(rssFeeds.lang),
+      lang      = Lang.from(rssFeeds.lang),
     )
 
   implicit class RichRSSFeed(rssFeed: RSSFeed) {

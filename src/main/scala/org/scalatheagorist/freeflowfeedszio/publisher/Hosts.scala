@@ -9,6 +9,8 @@ import java.net.URI
 import scala.util.Try
 
 object Hosts {
+  final case class PublisherUrl(publisher: Publisher, url: URL)
+
   implicit class RichHosts(hosts: List[PublisherHost]) {
     def toPublisherUrl[R, E](initialReverse: Boolean): ZStream[R, E, PublisherUrl] =
       ZStream.fromIterable {
@@ -29,8 +31,6 @@ object Hosts {
           }
       }
   }
-
-  final case class PublisherUrl(publisher: Publisher, url: URL)
 
   val show: Show[List[PublisherHost]] = hosts => show"""${hosts.map(p => show"\n    $p").mkString}"""
 }

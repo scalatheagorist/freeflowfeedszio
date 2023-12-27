@@ -23,7 +23,11 @@ final case class RssFeeds(
 
 object RssFeeds {
   private val insertQuery: String =
-    "INSERT INTO rss_feeds (id, author, title, link, publisher, lang, created) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING"
+    """
+      |INSERT INTO rss_feeds (id, author, title, link, publisher, lang, created)
+      |VALUES (?, ?, ?, ?, ?, ?, ?)
+      |ON CONFLICT (id) DO NOTHING
+      |""".stripMargin
 
   def insertQuery(rssFeeds: Chunk[RssFeeds])(implicit connection: Connection): ZIO[Any, Throwable, Unit] =
     (for {
@@ -66,8 +70,8 @@ object RssFeeds {
 
   private def whereClause(publisher: Option[Publisher], lang: Option[Lang], searchTerm: Option[String]): String = {
     val publisher0 = publisher.map(p => s"publisher = '${p.show}'")
-    val lang0 = lang.map(l => s"lang = '${l.show}'")
-    val search = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
+    val lang0      = lang.map(l => s"lang = '${l.show}'")
+    val search     = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
 
     publisher0.orElse(lang0) match {
       case Some(enumeration) =>
@@ -86,7 +90,7 @@ object RssFeeds {
     implicit conn: Connection
   ): ZIO[Any, Throwable, ResultSet] = {
     val pagination: String = s" ORDER BY created DESC LIMIT $pageSize OFFSET $from"
-    val fragment: String = select ++ whereClause(publisher, lang, searchTerm) ++ pagination
+    val fragment: String   = select ++ whereClause(publisher, lang, searchTerm) ++ pagination
 
     ZIO.logInfo(fragment) *>
       ZIO
