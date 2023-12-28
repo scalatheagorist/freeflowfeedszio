@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.13.10"
+ThisBuild / scalaVersion := "3.3.0"
 
 Compile / mainClass := Some("org.scalatheagorist.freeflowfeedszio.AppServer")
 
@@ -18,6 +18,8 @@ val options = Seq(
   "-unchecked"
 )
 
+val scala3 = "_3"
+
 lazy val root = (project in file("."))
   .settings(
     organization := "org.scalatheagorist",
@@ -28,9 +30,12 @@ lazy val root = (project in file("."))
     Compile / scalacOptions ++= (Seq("-nowarn") ++ options),
     Test / resourceDirectory := baseDirectory.value / "test" / "resources",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.10.0",
-
       "org.postgresql" % "postgresql" % "42.7.1",
+      "org.xerial" % "sqlite-jdbc" % "3.44.1.0",
+      "net.ruippeixotog" %% "scala-scraper" % "3.1.0"
+    ),
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % "2.10.0",
 
       "dev.zio" %% "zio" % "2.0.13",
       "dev.zio" %% "zio-streams" % "2.0.13",
@@ -42,16 +47,6 @@ lazy val root = (project in file("."))
       "dev.zio" %% "zio-logging" % "2.1.14",
       "dev.zio" %% "zio-logging-slf4j" % "2.1.14",
       "dev.zio" %% "zio-http" % "3.0.0-RC2",
-
-      "org.xerial" % "sqlite-jdbc" % "3.44.1.0",
-
-      "net.ruippeixotog" %% "scala-scraper" % "3.1.0",
-
-      "dev.zio" %% "zio-test" % "2.0.18" % Test,
-      "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test,
-      "dev.zio" %% "zio-test-magnolia" % "2.0.18" % Test,
-      "org.mockito" %% "mockito-scala-scalatest" % "1.17.12" % Test,
-      "org.mockito" % "mockito-inline" % "3.12.4" % Test
     )
   )
 

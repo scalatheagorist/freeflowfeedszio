@@ -7,12 +7,13 @@ import zio.ZLayer
 import java.sql.Connection
 import java.sql.DriverManager
 
-object DatabaseConnectionService {
+
+object DatabaseConnectionService:
   private case class Credentials private (url: String, username: String, password: String)
-  private object Credentials {
+
+  private object Credentials:
     def from(conf: Configuration): Credentials =
       Credentials(conf.databaseConfig.url, conf.databaseConfig.username, conf.databaseConfig.password)
-  }
 
   private val statusSkeleton = "datasource connection"
 
@@ -24,4 +25,3 @@ object DatabaseConnectionService {
       _      <- if (conn.isClosed) ZIO.logInfo(s"$statusSkeleton failed") else ZIO.logInfo(s"$statusSkeleton successfully")
     } yield conn).catchAll(err => ZIO.fail(new RuntimeException(s"Error creating data source: ${err.getMessage}")))
   }
-}

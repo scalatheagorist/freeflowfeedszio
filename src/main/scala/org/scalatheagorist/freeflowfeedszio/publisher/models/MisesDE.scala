@@ -1,25 +1,25 @@
-package org.scalatheagorist.freeflowfeedszio.publisher
+package org.scalatheagorist.freeflowfeedszio.publisher.models
 
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.dsl.DSL.*
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract.*
 import org.scalatheagorist.freeflowfeedszio.models.Article
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import org.scalatheagorist.freeflowfeedszio.publisher.Category.*
 import zio.prelude.AssociativeBothTuple3Ops
 import zio.stream.ZStream
 
-case object MisesDE extends PublisherModel {
+case object MisesDE extends PublisherModel:
   override def toRSSFeedStream(htmlResponse: HtmlResponse): ZStream[Any, Throwable, RSSFeed] = ZStream.fromIterable {
     List
-      .from(browser.parseString(htmlResponse.response) >> elementList(".pt-cv-content-item"))
+      .from(parseString(htmlResponse.response) >> elementList(".pt-cv-content-item"))
       .flatMap { elem =>
         val author = (elem >?> element(".author") >?> text("span")).flatten
-        val title = (elem >?> element(".pt-cv-title") >?> text("a")).flatten
-        val href = (elem >?> element(".pt-cv-mask") >?> element("a") >?> attr("href")).flatten.flatten
+        val title  = (elem >?> element(".pt-cv-title") >?> text("a")).flatten
+        val href   = (elem >?> element(".pt-cv-mask") >?> element("a") >?> attr("href")).flatten.flatten
 
         (author, href, title).mapN { (author, link, title) =>
           RSSFeed(author, Article(title, link), Publisher.MISESDE, Lang.DE)
         }
       }
   }
-}

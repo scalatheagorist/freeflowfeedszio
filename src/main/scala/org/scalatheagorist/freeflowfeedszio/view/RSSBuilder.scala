@@ -1,35 +1,30 @@
 package org.scalatheagorist.freeflowfeedszio.view
 
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
+import org.scalatheagorist.freeflowfeedszio.publisher.Category
+import org.scalatheagorist.freeflowfeedszio.publisher.Category.Lang
+import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher
 import zio.ULayer
 import zio.ZLayer
 import zio.stream.ZStream
 
-trait RSSBuilder {
-  def build[R, E](
-    publisher: Option[Publisher],
-    lang: Option[Lang])(
+trait RSSBuilder:
+  def build[R, E](category: Option[Category])(
     stream: ZStream[R, E, RSSFeed]
   ): ZStream[R, E, String]
-}
 
-object RSSBuilder {
+object RSSBuilder:
   val layer: ULayer[RSSBuilder] =
     ZLayer.succeed {
-      new RSSBuilder {
-        def build[R, E](
-          publisher: Option[Publisher],
-          lang: Option[Lang])(
+      new RSSBuilder:
+        def build[R, E](category: Option[Category])(
           stream: ZStream[R, E, RSSFeed]
         ): ZStream[R, E, String] =
-          publisher
-            .map(p => stream.filter(_.publisher == p))
-            .orElse(lang.map(l => stream.filter(_.lang == l)))
-            .getOrElse(stream)
-            .flatMap(feed => ZStream.succeed(generateCards(feed)))
-      }
+          (category match
+            case None               => stream
+            case Some(p: Publisher) => stream.filter(_.publisher == p)
+            case Some(l: Lang)      => stream.filter(_.lang == l)
+          ).flatMap(feed => ZStream.succeed(generateCards(feed)))
     }
 
   private def generateCards(rssFeed: RSSFeed): String =
@@ -44,4 +39,4 @@ object RSSBuilder {
        |    </div>
        |</div>
        |""".stripMargin
-}
+  end generateCards

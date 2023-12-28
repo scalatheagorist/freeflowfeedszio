@@ -1,48 +1,46 @@
 package org.scalatheagorist.freeflowfeedszio.core.jdbc
 
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.RssFeeds
-import org.scalatheagorist.freeflowfeedszio.publisher.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Publisher
-import zio._
+import org.scalatheagorist.freeflowfeedszio.publisher.Category
+import zio.*
 import zio.http.Client
 import zio.stream.ZStream
 
 import java.sql.Connection
 
-trait DatabaseClient {
+trait DatabaseClient:
   def select(
     page: Int,
     pageSize: Int,
-    publisher: Option[Publisher],
-    lang: Option[Lang],
+    category: Option[Category],
     searchTerm: Option[String]
   ): ZStream[Any, Throwable, RssFeeds]
 
   def insert(stream: ZStream[Client, Throwable, RssFeeds]): ZStream[Client, Throwable, Unit]
-}
 
-object DatabaseClient {
+object DatabaseClient:
   val layer: ZLayer[Connection, Nothing, DatabaseClient] =
     ZLayer {
-      ZIO.serviceWith[Connection] { implicit conn =>
+      ZIO.serviceWith[Connection] { conn =>
+        given connection: Connection = conn
+
         new DatabaseClient {
           override def select(
             page: Int,
             pageSize: Int,
-            publisher: Option[Publisher],
-            lang: Option[Lang],
+            category: Option[Category],
             searchTerm: Option[String]
           ): ZStream[Any, Throwable, RssFeeds] =
             ZStream.fromIteratorZIO(
-              for {
-                rs       <- RssFeeds.selectQuery(publisher, lang, searchTerm, pageSize, page * pageSize)
+              for
+                rs <- RssFeeds.selectQuery(category, searchTerm, pageSize, page * pageSize)
                 iterator <- ZIO.attempt {
                               new Iterator[RssFeeds] {
                                 override def hasNext: Boolean = rs.next()
                                 override def next(): RssFeeds = RssFeeds.from(rs)
                               }
                             }
-              } yield iterator
+              yield iterator
             )
 
           override def insert(feeds: ZStream[Client, Throwable, RssFeeds]): ZStream[Client, Throwable, Unit] =
@@ -58,4 +56,3 @@ object DatabaseClient {
         }
       }
     }
-}
