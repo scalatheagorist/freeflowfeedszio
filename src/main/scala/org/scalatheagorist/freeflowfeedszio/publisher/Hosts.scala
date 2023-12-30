@@ -31,5 +31,3 @@ object Hosts:
             case Some(url) => ZStream.succeed(PublisherUrl(publisher, url))
             case None      => ZStream.empty
         }
-
-  val show: Show[List[PublisherHost]] = hosts => show"""${hosts.map(p => show"\n    $p").mkString}"""

@@ -28,22 +28,19 @@ object Routes:
               pageSize: Option[Int],
               category: Option[Category],
               term: Option[String]
-            ): Task[Response] = {
+            ): Task[Response] =
               val page0 = page.flatMap(p => Try(p.toInt - 1).toOption).getOrElse(0)
               val feeds = rssService.getFeeds(page0, pageSize.getOrElse(100000), category, term)
+              val header = Header.ContentType(mediaType = MediaType.text.html)
 
-              Header.ContentType.parse("text/html; charset=utf-8") match
-                case Right(header) if page0 == 0 =>
-                  feeds
-                    .runFold("")(_ + _)
-                    .tapError(err => ZIO.logWarning(s"could not create content: ${err.getMessage}"))
-                    .map(IndexHtml(_))
-                    .map(index => Response(body = Body.fromString(index), headers = Headers(header :: Nil)))
-                case Right(header) =>
-                  ZIO.attempt(Response(body = Body.fromStream(feeds), headers = Headers(header :: Nil)))
-                case Left(ex) =>
-                  ZIO.logError(ex) *> ZIO.succeed(Response(status = Status.InternalServerError))
-            }
+              if page0 == 0 then
+                feeds
+                  .runFold("")(_ + _)
+                  .tapError(err => ZIO.logWarning(s"could not create content: ${err.getMessage}"))
+                  .map(IndexHtml(_))
+                  .map(index => Response(body = Body.fromString(index), headers = Headers(header :: Nil)))
+              else
+                ZIO.attempt(Response(body = Body.fromStream(feeds), headers = Headers(header :: Nil)))
 
             Http.collectZIO[Request] {
               case Method.GET -> Root / "efmagazin" / page =>

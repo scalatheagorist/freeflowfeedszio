@@ -25,3 +25,7 @@ object PublisherHost:
   given show: Show[PublisherHost] with
     def show(host: PublisherHost): String =
       s"""url:${host.url}, path:${host.path}, pageTo:${host.pageTo}, publisher:${host.publisher.toString}"""
+
+  given showList: Show[List[PublisherHost]] with
+    def show(hosts: List[PublisherHost]): String =
+      s"""${hosts.map(p => s"\n    $p").mkString}"""

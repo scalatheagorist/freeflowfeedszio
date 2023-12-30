@@ -19,12 +19,7 @@ trait HtmlScrapeService:
   def stream: ZStream[Client, Throwable, Unit]
 
 object HtmlScrapeService:
-  private val scrapeInfo =
-    """
-      |
-      | start scraping
-      |
-      |""".stripMargin
+  private val scrapeInfo = "\nstart scraping\n"
 
   val layer: ZLayer[JavaClock & Configuration & HttpClient & DatabaseClient, Nothing, HtmlScrapeService] =
     ZLayer {
@@ -37,23 +32,20 @@ object HtmlScrapeService:
         new HtmlScrapeService {
           override def stream: ZStream[Client, Throwable, Unit] =
             (for
-              _ <- ZStream.logInfo(scrapeInfo)
-
+              _            <- ZStream.logInfo(scrapeInfo)
               publisherUrls = configuration.hosts.toPublisherUrl(configuration.initialReverse)
-
-              _ <- databaseClient.insert(stream = publisherUrls.flatMapPar(configuration.scrapeConcurrency) { url =>
-                     ZStream.blocking {
-                       (for {
-                         response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))
-
-                         _ <- ZStream.logInfo(s"STATUS ${response.status.code} from ${url.url.encode}")
-
-                         decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode).orElse(ZStream.empty)
-                         htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
-                         rssFeed  <- RSSFeed.from(htmlResp, url).map(_.toDatabaseRssFeeds(clock))
-                       } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
-                     }
-                   })
+              _            <- databaseClient
+                                .insert(stream = publisherUrls.flatMapPar(configuration.scrapeConcurrency) { url =>
+                                  ZStream.blocking {
+                                    (for {
+                                      response <- ZStream.fromZIO(httpClient.get(url.url)).tapError(ex => ZIO.logError(ex.getMessage))
+                                      _        <- ZStream.logInfo(s"STATUS ${response.status.code} from ${url.url.encode}")
+                                      decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode).orElse(ZStream.empty)
+                                      htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
+                                      rssFeed  <- RSSFeed.from(htmlResp, url).map(_.toDatabaseRssFeeds(clock))
+                                    } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
+                                  }
+                                })
             yield ()).tapError(ex => ZIO.logError(ex.getMessage))
           end stream
         }
