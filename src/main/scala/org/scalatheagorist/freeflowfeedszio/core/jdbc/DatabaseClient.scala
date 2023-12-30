@@ -33,7 +33,7 @@ object DatabaseClient:
           ): ZStream[Any, Throwable, RssFeeds] =
             ZStream.fromIteratorZIO(
               for
-                rs <- RssFeeds.selectQuery(category, searchTerm, pageSize, page * pageSize)
+                rs       <- RssFeeds.selectQuery(category, searchTerm, pageSize, page * pageSize)
                 iterator <- ZIO.attempt {
                               new Iterator[RssFeeds] {
                                 override def hasNext: Boolean = rs.next()

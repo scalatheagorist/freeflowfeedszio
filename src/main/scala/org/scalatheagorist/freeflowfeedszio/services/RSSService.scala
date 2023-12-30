@@ -52,7 +52,6 @@ object RSSService:
                 }
               }
               .tapError(ex => ZIO.logError(ex.getMessage))
-          end getFeeds
 
           def runScraper: ZIO[Client, Throwable, Unit] =
             val targetTime =
@@ -63,26 +62,23 @@ object RSSService:
               yield offsetDateTime
 
             targetTime.flatMap { targetTime =>
+              /**
+               * sleep 1 second to begin a new loop session without multiple runs at the moment
+               */
               def pushLoop: ZIO[Client, Throwable, Unit] =
                 for
                   currentTime  <- zioClock.currentDateTime
                   delay        <- ZIO.attempt(Duration.between(currentTime, targetTime))
-                  adjustedDelay = if (delay.isNegative) delay.plusHours(configuration.updateInterval) else delay
-
-                  _ <- ZIO.sleep(adjustedDelay.toMillis.millis)
-                  _ <- htmlScrapeService.stream.run(ZSink.drain).forkDaemon
-                  // sleep 1 second to begin a new loop session without multiple runs at the moment
-                  _ <- ZIO.sleep(1.second)
-
-                  _ <- pushLoop
+                  adjustedDelay = if delay.isNegative then delay.plusHours(configuration.updateInterval) else delay
+                  _            <- ZIO.sleep(adjustedDelay.toMillis.millis)
+                  _            <- htmlScrapeService.stream.run(ZSink.drain).forkDaemon
+                  _            <- ZIO.sleep(1.second)
+                  _            <- pushLoop
                 yield ()
 
-              if (targetTime.isAfter(OffsetDateTime.MIN) && targetTime.isBefore(OffsetDateTime.MAX))
-                pushLoop
-              else
-                ZIO.logError(s"invalid time: ${configuration.update}")
+              if targetTime.isAfter(OffsetDateTime.MIN) && targetTime.isBefore(OffsetDateTime.MAX) then pushLoop
+              else ZIO.logError(s"invalid time: ${configuration.update}")
             }
-          end runScraper
         }
       }
     }

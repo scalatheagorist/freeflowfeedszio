@@ -71,7 +71,7 @@ object RssFeeds:
   private val select: String = "SELECT id, author, title, link, publisher, lang, created FROM rss_feeds"
 
   private inline def whereClause(category: Option[Category], searchTerm: Option[String]): String =
-    val search = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
+    val search         = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
     val clauseCategory = category match
       case Some(p: Publisher) => Some(s"publisher = '${p.show}'")
       case Some(l: Lang)      => Some(s"lang = '${l.show}'")

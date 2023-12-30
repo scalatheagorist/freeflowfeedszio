@@ -29,8 +29,8 @@ object Routes:
               category: Option[Category],
               term: Option[String]
             ): Task[Response] =
-              val page0 = page.flatMap(p => Try(p.toInt - 1).toOption).getOrElse(0)
-              val feeds = rssService.getFeeds(page0, pageSize.getOrElse(100000), category, term)
+              val page0  = page.flatMap(p => Try(p.toInt - 1).toOption).getOrElse(0)
+              val feeds  = rssService.getFeeds(page0, pageSize.getOrElse(100000), category, term)
               val header = Header.ContentType(mediaType = MediaType.text.html)
 
               if page0 == 0 then
@@ -39,28 +39,47 @@ object Routes:
                   .tapError(err => ZIO.logWarning(s"could not create content: ${err.getMessage}"))
                   .map(IndexHtml(_))
                   .map(index => Response(body = Body.fromString(index), headers = Headers(header :: Nil)))
-              else
-                ZIO.attempt(Response(body = Body.fromStream(feeds), headers = Headers(header :: Nil)))
+              else ZIO.attempt(Response(body = Body.fromStream(feeds), headers = Headers(header :: Nil)))
 
             Http.collectZIO[Request] {
-              case Method.GET -> Root / "efmagazin" / page =>
-                ZIO.logInfo(s"GET: /efmagazin/$page") *> pullStream(Some(page), Some(pageSize), Publisher.EFMAGAZIN.some, None)
+              case Method.GET -> Root / "efmagazin" / page       =>
+                ZIO.logInfo(s"GET: /efmagazin/$page") *> pullStream(
+                  Some(page),
+                  Some(pageSize),
+                  Publisher.EFMAGAZIN.some,
+                  None
+                )
               case Method.GET -> Root / "freiheitsfunken" / page =>
-                ZIO.logInfo(s"GET: /freiheitsfunken/$page") *> pullStream(Some(page), Some(pageSize), Publisher.FREIHEITSFUNKEN.some, None)
-              case Method.GET -> Root / "misesde" / page =>
-                ZIO.logInfo(s"GET: /misesde/$page") *> pullStream(Some(page), Some(pageSize), Publisher.MISESDE.some, None)
-              case Method.GET -> Root / "schweizermonat" / page =>
-                ZIO.logInfo(s"GET: /schweizermonat/$page") *> pullStream(Some(page), Some(pageSize), Publisher.SCHWEIZER_MONAT.some, None)
-              case Method.GET -> Root / "german" / page =>
+                ZIO.logInfo(s"GET: /freiheitsfunken/$page") *> pullStream(
+                  Some(page),
+                  Some(pageSize),
+                  Publisher.FREIHEITSFUNKEN.some,
+                  None
+                )
+              case Method.GET -> Root / "misesde" / page         =>
+                ZIO.logInfo(s"GET: /misesde/$page") *> pullStream(
+                  Some(page),
+                  Some(pageSize),
+                  Publisher.MISESDE.some,
+                  None
+                )
+              case Method.GET -> Root / "schweizermonat" / page  =>
+                ZIO.logInfo(s"GET: /schweizermonat/$page") *> pullStream(
+                  Some(page),
+                  Some(pageSize),
+                  Publisher.SCHWEIZER_MONAT.some,
+                  None
+                )
+              case Method.GET -> Root / "german" / page          =>
                 ZIO.logInfo(s"GET: /german/$page") *> pullStream(Some(page), Some(pageSize), Lang.DE.some, None)
-              case Method.GET -> Root / "english" / page =>
+              case Method.GET -> Root / "english" / page         =>
                 ZIO.logInfo(s"GET: /english/$page") *> pullStream(Some(page), Some(pageSize), Lang.EN.some, None)
-              case req @ Method.GET -> Root / "search" =>
+              case req @ Method.GET -> Root / "search"           =>
                 val query = req.url.queryParams.get("term").map(_.mkString)
                 ZIO.logInfo(s"GET: /search/${query.mkString}") *> pullStream(None, None, None, query)
-              case Method.GET -> Root / "articles" / page =>
+              case Method.GET -> Root / "articles" / page        =>
                 ZIO.logInfo(s"GET: /articles/$page") *> pullStream(Some(page), Some(pageSize), None, None)
-              case _ =>
+              case _                                             =>
                 ZIO.logWarning(s"NOT FOUND") *> ZIO.succeed(Response(status = Status.NotFound))
             }
           }

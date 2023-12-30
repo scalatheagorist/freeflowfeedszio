@@ -39,4 +39,3 @@ object RSSBuilder:
        |    </div>
        |</div>
        |""".stripMargin
-  end generateCards

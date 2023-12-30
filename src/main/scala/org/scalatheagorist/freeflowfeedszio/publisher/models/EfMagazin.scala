@@ -18,7 +18,7 @@ final case class EfMagazin(prefix: String) extends PublisherModel:
       val author  = (article >?> elements("p") >?> element("em") >?> text("a")).flatten.flatten.getOrElse("EfMagazin")
 
       (link, title).mapN { (link, title) =>
-        val href = if (link.startsWith("https")) link else s"$prefix$link"
+        val href = if link.startsWith("https") then link else s"$prefix$link"
         RSSFeed(author, Article(title, href), Publisher.EFMAGAZIN, Lang.DE)
       }
     }

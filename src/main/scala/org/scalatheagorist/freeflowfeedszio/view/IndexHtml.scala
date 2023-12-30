@@ -376,7 +376,6 @@ object IndexHtml:
        |</div>
        |
        |""".stripMargin
-  end html
 
   private def scripts: String =
     """
@@ -479,4 +478,3 @@ object IndexHtml:
       |</body>
       |</html>
       |""".stripMargin
-  end scripts

@@ -12,7 +12,7 @@ import scala.util.Try
 object Hosts:
   final case class PublisherUrl(publisher: Publisher, url: URL)
 
-  extension(hosts: List[PublisherHost])
+  extension (hosts: List[PublisherHost])
     def toPublisherUrl[R, E](initialReverse: Boolean): ZStream[R, E, PublisherUrl] =
       ZStream
         .fromIterable {
@@ -24,7 +24,7 @@ object Hosts:
               .getOrElse(Int.MinValue)
           }
 
-          if (initialReverse) publisherUrls.reverse else publisherUrls
+          if initialReverse then publisherUrls.reverse else publisherUrls
         }
         .flatMap { case (publisher, url) =>
           URL.fromURI(URI.create(url)) match
