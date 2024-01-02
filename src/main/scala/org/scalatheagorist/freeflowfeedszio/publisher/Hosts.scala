@@ -2,7 +2,7 @@ package org.scalatheagorist.freeflowfeedszio.publisher
 
 import cats.Show
 import cats.implicits.showInterpolator
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
 import zio.http.URL
 import zio.stream.ZStream
 

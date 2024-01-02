@@ -1,39 +1,39 @@
 package org.scalatheagorist.freeflowfeedszio.core.jdbc
 
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.RssFeeds
-import org.scalatheagorist.freeflowfeedszio.publisher.Category
+import org.scalatheagorist.freeflowfeedszio.publisher.Props
 import zio.*
 import zio.http.Client
 import zio.stream.ZStream
 
 import java.sql.Connection
 
-trait DatabaseClient:
+trait RssFeedsDatabaseService extends SQLFunctions:
   def select(
     page: Int,
     pageSize: Int,
-    category: Option[Category],
+    props: Option[Props],
     searchTerm: Option[String]
   ): ZStream[Any, Throwable, RssFeeds]
 
   def insert(stream: ZStream[Client, Throwable, RssFeeds]): ZStream[Client, Throwable, Unit]
 
-object DatabaseClient:
-  val layer: ZLayer[Connection, Nothing, DatabaseClient] =
+object RssFeedsDatabaseService:
+  val layer: ZLayer[Connection, Nothing, RssFeedsDatabaseService] =
     ZLayer {
       ZIO.serviceWith[Connection] { conn =>
         given connection: Connection = conn
 
-        new DatabaseClient {
+        new RssFeedsDatabaseService {
           override def select(
             page: Int,
             pageSize: Int,
-            category: Option[Category],
+            props: Option[Props],
             searchTerm: Option[String]
           ): ZStream[Any, Throwable, RssFeeds] =
             ZStream.fromIteratorZIO(
               for
-                rs       <- RssFeeds.selectQuery(category, searchTerm, pageSize, page * pageSize)
+                rs       <- select(RssFeeds.selectQuery(props, searchTerm, pageSize, page * pageSize))
                 iterator <- ZIO.attempt {
                               new Iterator[RssFeeds] {
                                 override def hasNext: Boolean = rs.next()
@@ -47,9 +47,10 @@ object DatabaseClient:
             feeds.chunks.flatMap { feeds =>
               ZStream.blocking {
                 ZStream.fromZIO {
-                  RssFeeds
-                    .insertQuery(feeds)
-                    .catchAll(err => ZIO.fail(new RuntimeException(s"Error inserting data: ${err.getMessage}")))
+                  insertBatch(
+                    query = RssFeeds.insertQuery,
+                    effect = stmt => RssFeeds.insertBatch(stmt, feeds)
+                  ).catchAll(err => ZIO.fail(new RuntimeException(s"Error inserting data: ${err.getMessage}")))
                 }
               }
             }

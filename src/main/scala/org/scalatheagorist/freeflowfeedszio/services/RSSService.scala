@@ -1,9 +1,9 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
 import org.scalatheagorist.freeflowfeedszio.Configuration
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.RssFeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Category
+import org.scalatheagorist.freeflowfeedszio.publisher.Props
 import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
 import zio.*
 import zio.Config.LocalTime
@@ -22,19 +22,19 @@ trait RSSService:
   def getFeeds(
     page: Int,
     pageSize: Int,
-    category: Option[Category],
+    props: Option[Props],
     term: Option[String]
   ): ZStream[Any, Throwable, String]
 
   def runScraper: ZIO[Client, Throwable, Unit]
 
 object RSSService:
-  val layer: ZLayer[JavaClock & Configuration & RSSBuilder & DatabaseClient & HtmlScrapeService, Nothing, RSSService] =
+  val layer: ZLayer[JavaClock & Configuration & RSSBuilder & RssFeedsDatabaseService & HtmlScrapeService, Nothing, RSSService] =
     ZLayer {
       (
         ZIO.service[Configuration],
         ZIO.service[HtmlScrapeService],
-        ZIO.service[DatabaseClient],
+        ZIO.service[RssFeedsDatabaseService],
         ZIO.service[RSSBuilder],
         ZIO.serviceWith[JavaClock](Clock.ClockJava)
       ).mapN { (configuration, htmlScrapeService, databaseClient, rssBuilder, zioClock) =>
@@ -42,12 +42,12 @@ object RSSService:
           def getFeeds(
             page: Int,
             pageSize: Int,
-            category: Option[Category],
+            props: Option[Props],
             term: Option[String]
           ): ZStream[Any, Throwable, String] =
             rssBuilder
-              .build(category) {
-                databaseClient.select(page, pageSize, category, term).flatMap { rssFeed =>
+              .build(props) {
+                databaseClient.select(page, pageSize, props, term).flatMap { rssFeed =>
                   ZStream.fromZIO(ZIO.attempt(RSSFeed.from(rssFeed)))
                 }
               }

@@ -3,8 +3,8 @@ package org.scalatheagorist.freeflowfeedszio.models
 import cats.Show
 import cats.implicits.toShow
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.RssFeeds
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.*
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher.*
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.PublisherUrl
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.PublisherUrl.*
 import org.scalatheagorist.freeflowfeedszio.publisher.models.*

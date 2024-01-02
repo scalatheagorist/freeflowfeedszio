@@ -1,9 +1,9 @@
 package org.scalatheagorist.freeflowfeedszio
 
 import cats.implicits.catsSyntaxOptionId
-import org.scalatheagorist.freeflowfeedszio.publisher.Category
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher
+import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import org.scalatheagorist.freeflowfeedszio.services.RSSService
 import org.scalatheagorist.freeflowfeedszio.view.IndexHtml
 import zio.Task
@@ -26,11 +26,11 @@ object Routes:
             def pullStream(
               page: Option[String],
               pageSize: Option[Int],
-              category: Option[Category],
+              props: Option[Props],
               term: Option[String]
             ): Task[Response] =
               val page0  = page.flatMap(p => Try(p.toInt - 1).toOption).getOrElse(0)
-              val feeds  = rssService.getFeeds(page0, pageSize.getOrElse(100000), category, term)
+              val feeds  = rssService.getFeeds(page0, pageSize.getOrElse(100000), props, term)
               val header = Header.ContentType(mediaType = MediaType.text.html)
 
               if page0 == 0 then

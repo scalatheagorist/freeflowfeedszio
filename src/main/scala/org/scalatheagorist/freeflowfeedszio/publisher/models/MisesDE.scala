@@ -5,7 +5,7 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Extract.*
 import org.scalatheagorist.freeflowfeedszio.models.Article
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
 import zio.prelude.AssociativeBothTuple3Ops
 import zio.stream.ZStream
 

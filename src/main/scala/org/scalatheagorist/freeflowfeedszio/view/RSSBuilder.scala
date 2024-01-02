@@ -1,15 +1,15 @@
 package org.scalatheagorist.freeflowfeedszio.view
 
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Category
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher
+import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import zio.ULayer
 import zio.ZLayer
 import zio.stream.ZStream
 
 trait RSSBuilder:
-  def build[R, E](category: Option[Category])(
+  def build[R, E](props: Option[Props])(
     stream: ZStream[R, E, RSSFeed]
   ): ZStream[R, E, String]
 
@@ -17,10 +17,10 @@ object RSSBuilder:
   val layer: ULayer[RSSBuilder] =
     ZLayer.succeed {
       new RSSBuilder:
-        def build[R, E](category: Option[Category])(
+        def build[R, E](props: Option[Props])(
           stream: ZStream[R, E, RSSFeed]
         ): ZStream[R, E, String] =
-          (category match
+          (props match
             case None               => stream
             case Some(p: Publisher) => stream.filter(_.publisher == p)
             case Some(l: Lang)      => stream.filter(_.lang == l)

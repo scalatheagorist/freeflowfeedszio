@@ -5,7 +5,7 @@ import net.ruippeixotog.scalascraper.browser.Browser
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import org.scalatheagorist.freeflowfeedszio.publisher.Hosts.PublisherUrl
 import org.scalatheagorist.freeflowfeedszio.util.RichURL.*
 import zio.stream.ZStream
