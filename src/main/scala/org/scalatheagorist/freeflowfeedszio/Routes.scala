@@ -4,7 +4,7 @@ import cats.implicits.catsSyntaxOptionId
 import org.scalatheagorist.freeflowfeedszio.publisher.Props
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
-import org.scalatheagorist.freeflowfeedszio.services.RSSService
+import org.scalatheagorist.freeflowfeedszio.services.FeedService
 import org.scalatheagorist.freeflowfeedszio.view.IndexHtml
 import zio.Task
 import zio.ZIO
@@ -18,9 +18,9 @@ trait Routes:
   def apply: Http[Any, Throwable, Request, Response]
 
 object Routes:
-  val layer: ZLayer[Configuration & RSSService, Nothing, Routes] =
+  val layer: ZLayer[Configuration & FeedService, Nothing, Routes] =
     ZLayer {
-      (ZIO.service[RSSService], ZIO.serviceWith[Configuration](_.pageSize)).mapN { (rssService, pageSize) =>
+      (ZIO.service[FeedService], ZIO.serviceWith[Configuration](_.pageSize)).mapN { (feedService, pageSize) =>
         new Routes {
           override def apply: Http[Any, Throwable, Request, Response] = {
             def pullStream(
@@ -30,7 +30,7 @@ object Routes:
               term: Option[String]
             ): Task[Response] =
               val page0  = page.flatMap(p => Try(p.toInt - 1).toOption).getOrElse(0)
-              val feeds  = rssService.getFeeds(page0, pageSize.getOrElse(100000), props, term)
+              val feeds  = feedService.getFeeds(page0, pageSize.getOrElse(100000), props, term)
               val header = Header.ContentType(mediaType = MediaType.text.html)
 
               if page0 == 0 then

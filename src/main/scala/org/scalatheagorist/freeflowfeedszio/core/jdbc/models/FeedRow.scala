@@ -13,7 +13,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-final case class RssFeeds(
+final case class FeedRow(
   id: Long,
   author: String,
   title: String,
@@ -23,30 +23,30 @@ final case class RssFeeds(
   created: LocalDateTime
 )
 
-object RssFeeds:
+object FeedRow:
   val insertQuery: String =
     """
-      |INSERT INTO rss_feeds (id, author, title, link, publisher, lang, created)
+      |INSERT INTO feeds (id, author, title, link, publisher, lang, created)
       |VALUES (?, ?, ?, ?, ?, ?, ?)
       |ON CONFLICT (id) DO NOTHING
       |""".stripMargin
 
-  def insertBatch(stmt: PreparedStatement, rssFeeds: Chunk[RssFeeds]): ZIO[Any, Nothing, Chunk[Unit]] =
+  def insertBatch(stmt: PreparedStatement, feedRow: Chunk[FeedRow]): ZIO[Any, Nothing, Chunk[Unit]] =
     ZIO.succeed {
-      rssFeeds.map { rss =>
-        stmt.setLong(1, rss.id)
-        stmt.setString(2, rss.author)
-        stmt.setString(3, rss.title)
-        stmt.setString(4, rss.link)
-        stmt.setString(5, rss.publisher.show)
-        stmt.setString(6, rss.lang.show)
-        stmt.setTimestamp(7, Timestamp.valueOf(rss.created))
+      feedRow.map { o =>
+        stmt.setLong(1, o.id)
+        stmt.setString(2, o.author)
+        stmt.setString(3, o.title)
+        stmt.setString(4, o.link)
+        stmt.setString(5, o.publisher.show)
+        stmt.setString(6, o.lang.show)
+        stmt.setTimestamp(7, Timestamp.valueOf(o.created))
         stmt.addBatch()
       }
     }
 
-  def from(resultSet: ResultSet): RssFeeds =
-    RssFeeds(
+  def from(resultSet: ResultSet): FeedRow =
+    FeedRow(
       id = resultSet.getLong("id"),
       author = resultSet.getString("author"),
       title = resultSet.getString("title"),
@@ -56,7 +56,7 @@ object RssFeeds:
       created = resultSet.getTimestamp("created").toLocalDateTime
     )
 
-  private val select: String = "SELECT id, author, title, link, publisher, lang, created FROM rss_feeds"
+  private val select: String = "SELECT id, author, title, link, publisher, lang, created FROM feeds"
 
   private inline def whereClause(props: Option[Props], searchTerm: Option[String]): String =
     val search      = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")

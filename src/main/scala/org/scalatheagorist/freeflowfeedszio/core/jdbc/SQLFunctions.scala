@@ -1,6 +1,6 @@
 package org.scalatheagorist.freeflowfeedszio.core.jdbc
 
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.RssFeeds
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.FeedRow
 import zio.Chunk
 import zio.ZIO
 

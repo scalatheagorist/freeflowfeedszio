@@ -3,7 +3,7 @@ package org.scalatheagorist.freeflowfeedszio.publisher
 import cats.Show
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
-import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import org.scalatheagorist.freeflowfeedszio.models.Feed
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher.*
 import org.scalatheagorist.freeflowfeedszio.publisher.models.*

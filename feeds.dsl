@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS rss_feeds (
+CREATE TABLE IF NOT EXISTS feeds (
     id BIGINT PRIMARY KEY,
     author TEXT,
     title TEXT,

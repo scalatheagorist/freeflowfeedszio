@@ -1,6 +1,6 @@
 package org.scalatheagorist.freeflowfeedszio.view
 
-import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import org.scalatheagorist.freeflowfeedszio.models.Feed
 import org.scalatheagorist.freeflowfeedszio.publisher.Props
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
@@ -8,17 +8,17 @@ import zio.ULayer
 import zio.ZLayer
 import zio.stream.ZStream
 
-trait RSSBuilder:
+trait FeedHtmlBuilder:
   def build[R, E](props: Option[Props])(
-    stream: ZStream[R, E, RSSFeed]
+    stream: ZStream[R, E, Feed]
   ): ZStream[R, E, String]
 
-object RSSBuilder:
-  val layer: ULayer[RSSBuilder] =
+object FeedHtmlBuilder:
+  val layer: ULayer[FeedHtmlBuilder] =
     ZLayer.succeed {
-      new RSSBuilder:
+      new FeedHtmlBuilder:
         def build[R, E](props: Option[Props])(
-          stream: ZStream[R, E, RSSFeed]
+          stream: ZStream[R, E, Feed]
         ): ZStream[R, E, String] =
           (props match
             case None               => stream
@@ -27,14 +27,14 @@ object RSSBuilder:
           ).flatMap(feed => ZStream.succeed(generateCards(feed)))
     }
 
-  private def generateCards(rssFeed: RSSFeed): String =
+  private def generateCards(feed: Feed): String =
     s"""
        |<div class="article-card">
        |    <div class="card mb-3 bg-primary text-white">
-       |        <div class="card-body" onclick="window.open('${rssFeed.article.link}', '_blank');" style="cursor: pointer;">
-       |          ${s"""<p>${rssFeed.author}</p>\n"""}
-       |          ${s"""<p><span class="highlight-title">${rssFeed.article.title}</span></p>"""}
-       |          ${s"""<p><strong>Link:</strong><br><a href="${rssFeed.article.link}" target="_blank">${rssFeed.article.link}</a></p>"""}
+       |        <div class="card-body" onclick="window.open('${feed.article.link}', '_blank');" style="cursor: pointer;">
+       |          ${s"""<p>${feed.author}</p>\n"""}
+       |          ${s"""<p><span class="highlight-title">${feed.article.title}</span></p>"""}
+       |          ${s"""<p><strong>Link:</strong><br><a href="${feed.article.link}" target="_blank">${feed.article.link}</a></p>"""}
        |        </div>
        |    </div>
        |</div>

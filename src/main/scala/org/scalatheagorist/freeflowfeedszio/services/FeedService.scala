@@ -1,10 +1,10 @@
 package org.scalatheagorist.freeflowfeedszio.services
 
 import org.scalatheagorist.freeflowfeedszio.Configuration
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.RssFeedsDatabaseService
-import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
+import org.scalatheagorist.freeflowfeedszio.models.Feed
 import org.scalatheagorist.freeflowfeedszio.publisher.Props
-import org.scalatheagorist.freeflowfeedszio.view.RSSBuilder
+import org.scalatheagorist.freeflowfeedszio.view.FeedHtmlBuilder
 import zio.*
 import zio.Config.LocalTime
 import zio.http.Client
@@ -18,7 +18,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-trait RSSService:
+trait FeedService:
   def getFeeds(
     page: Int,
     pageSize: Int,
@@ -28,27 +28,31 @@ trait RSSService:
 
   def runScraper: ZIO[Client, Throwable, Unit]
 
-object RSSService:
-  val layer: ZLayer[JavaClock & Configuration & RSSBuilder & RssFeedsDatabaseService & HtmlScrapeService, Nothing, RSSService] =
+object FeedService:
+  val layer: ZLayer[
+    JavaClock & Configuration & FeedHtmlBuilder & FeedsDatabaseService & HtmlScrapeService,
+    Nothing,
+    FeedService
+  ] =
     ZLayer {
       (
         ZIO.service[Configuration],
         ZIO.service[HtmlScrapeService],
-        ZIO.service[RssFeedsDatabaseService],
-        ZIO.service[RSSBuilder],
+        ZIO.service[FeedsDatabaseService],
+        ZIO.service[FeedHtmlBuilder],
         ZIO.serviceWith[JavaClock](Clock.ClockJava)
-      ).mapN { (configuration, htmlScrapeService, databaseClient, rssBuilder, zioClock) =>
-        new RSSService {
+      ).mapN { (configuration, htmlScrapeService, databaseClient, feedBuilder, zioClock) =>
+        new FeedService {
           def getFeeds(
             page: Int,
             pageSize: Int,
             props: Option[Props],
             term: Option[String]
           ): ZStream[Any, Throwable, String] =
-            rssBuilder
+            feedBuilder
               .build(props) {
-                databaseClient.select(page, pageSize, props, term).flatMap { rssFeed =>
-                  ZStream.fromZIO(ZIO.attempt(RSSFeed.from(rssFeed)))
+                databaseClient.select(page, pageSize, props, term).flatMap { feedRow =>
+                  ZStream.fromZIO(ZIO.attempt(Feed.from(feedRow)))
                 }
               }
               .tapError(ex => ZIO.logError(ex.getMessage))
