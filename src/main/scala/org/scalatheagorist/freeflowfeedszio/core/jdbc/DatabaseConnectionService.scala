@@ -7,7 +7,6 @@ import zio.ZLayer
 import java.sql.Connection
 import java.sql.DriverManager
 
-
 object DatabaseConnectionService:
   private case class Credentials private (url: String, username: String, password: String)
 
@@ -22,6 +21,7 @@ object DatabaseConnectionService:
       config <- ZIO.service[Configuration]
       cred   <- ZIO.succeed(Credentials.from(config))
       conn   <- ZIO.attemptBlocking(DriverManager.getConnection(cred.url, cred.username, cred.password))
-      _      <- if (conn.isClosed) ZIO.logInfo(s"$statusSkeleton failed") else ZIO.logInfo(s"$statusSkeleton successfully")
+      _      <- if conn.isClosed then ZIO.logInfo(s"$statusSkeleton failed")
+                else ZIO.logInfo(s"$statusSkeleton successfully")
     } yield conn).catchAll(err => ZIO.fail(new RuntimeException(s"Error creating data source: ${err.getMessage}")))
   }

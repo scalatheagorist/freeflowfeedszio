@@ -4,15 +4,15 @@ import cats.Show
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.*
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher.*
 import org.scalatheagorist.freeflowfeedszio.publisher.models.*
 import org.scalatheagorist.freeflowfeedszio.util.RichURL.*
 import zio.stream.ZStream
 
-type Category = Publisher | Lang
+type Props = Publisher | Lang
 
-object Category:
+object Props:
   enum Publisher:
     case EFMAGAZIN, FREIHEITSFUNKEN, MISESDE, SCHWEIZER_MONAT
 

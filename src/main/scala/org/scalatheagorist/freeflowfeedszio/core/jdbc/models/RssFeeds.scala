@@ -2,9 +2,9 @@ package org.scalatheagorist.freeflowfeedszio.core.jdbc.models
 
 import cats.implicits.toShow
 import cats.kernel.Monoid
-import org.scalatheagorist.freeflowfeedszio.publisher.Category
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Category.Publisher
+import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import zio.*
 
 import java.sql.Connection
@@ -24,26 +24,14 @@ final case class RssFeeds(
 )
 
 object RssFeeds:
-  private val insertQuery: String =
+  val insertQuery: String =
     """
       |INSERT INTO rss_feeds (id, author, title, link, publisher, lang, created)
       |VALUES (?, ?, ?, ?, ?, ?, ?)
       |ON CONFLICT (id) DO NOTHING
       |""".stripMargin
 
-  def insertQuery(rssFeeds: Chunk[RssFeeds])(using connection: Connection): ZIO[Any, Throwable, Unit] =
-    (for
-      _    <- ZIO.succeed(connection.setAutoCommit(false))
-      stmt <- ZIO.attempt(connection.prepareStatement(insertQuery))
-      _    <- insertBatch(stmt, rssFeeds)
-      _    <- ZIO.attempt(stmt.executeBatch()) *> ZIO.attempt(connection.commit())
-      _    <- ZIO.attempt(stmt.close())
-    yield stmt)
-      .tapError(error => ZIO.logError(error.getMessage))
-      .tapError(_ => ZIO.succeed(connection.rollback()))
-      .unit
-
-  private inline def insertBatch(stmt: PreparedStatement, rssFeeds: Chunk[RssFeeds]): ZIO[Any, Nothing, Chunk[Unit]] =
+  def insertBatch(stmt: PreparedStatement, rssFeeds: Chunk[RssFeeds]): ZIO[Any, Nothing, Chunk[Unit]] =
     ZIO.succeed {
       rssFeeds.map { rss =>
         stmt.setLong(1, rss.id)
@@ -70,25 +58,16 @@ object RssFeeds:
 
   private val select: String = "SELECT id, author, title, link, publisher, lang, created FROM rss_feeds"
 
-  private inline def whereClause(category: Option[Category], searchTerm: Option[String]): String =
-    val search = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
-    val clauseCategory = category match
+  private inline def whereClause(props: Option[Props], searchTerm: Option[String]): String =
+    val search      = searchTerm.map(st => s" author LIKE '%$st%' OR title LIKE '%$st%' OR link LIKE '%$st%' ")
+    val clauseProps = props match
       case Some(p: Publisher) => Some(s"publisher = '${p.show}'")
       case Some(l: Lang)      => Some(s"lang = '${l.show}'")
       case None               => None
 
-    clauseCategory match
-      case Some(enumeration) => s" WHERE $enumeration " ++ search.map(s => s" AND $s ").mkString
-      case None              => search.map(s => s" WHERE $s ").mkString
+    clauseProps match
+      case Some(props) => s" WHERE $props " ++ search.map(s => s" AND $s ").mkString
+      case None        => search.map(s => s" WHERE $s ").mkString
 
-  def selectQuery(category: Option[Category], searchTerm: Option[String], pageSize: Int, from: Int)(using
-    conn: Connection
-  ): ZIO[Any, Throwable, ResultSet] =
-    val pagination: String = s" ORDER BY created DESC LIMIT $pageSize OFFSET $from"
-    val fragment: String   = select ++ whereClause(category, searchTerm) ++ pagination
-
-    ZIO.logInfo(fragment) *>
-      ZIO
-        .attempt(conn.prepareStatement(fragment))
-        .map(_.executeQuery())
-        .tapError(err => ZIO.logError(err.getMessage))
+  def selectQuery(props: Option[Props], searchTerm: Option[String], pageSize: Int, from: Int): String =
+    select ++ whereClause(props, searchTerm) ++ s" ORDER BY created DESC LIMIT $pageSize OFFSET $from"

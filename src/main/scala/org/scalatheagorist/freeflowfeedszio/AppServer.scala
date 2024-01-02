@@ -2,7 +2,7 @@ package org.scalatheagorist.freeflowfeedszio
 
 import cats.implicits.toShow
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseClient
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.RssFeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseConnectionService
 import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
 import org.scalatheagorist.freeflowfeedszio.services.RSSService
@@ -31,7 +31,7 @@ object AppServer extends ZIOAppDefault:
   private val clock = ZLayer.succeed(Clock.systemUTC())
 
   private val databaseClientLive =
-    (Configuration.live >>> DatabaseConnectionService.databaseLive) >>> DatabaseClient.layer
+    (Configuration.live >>> DatabaseConnectionService.databaseLive) >>> RssFeedsDatabaseService.layer
 
   private val htmlScrapeServiceLive =
     (clock ++ Configuration.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer

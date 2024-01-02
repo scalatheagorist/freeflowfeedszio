@@ -3,7 +3,8 @@ package org.scalatheagorist.freeflowfeedszio
 import cats.Show
 import cats.implicits.showInterpolator
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig
-import org.scalatheagorist.freeflowfeedszio.publisher.Hosts
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig.*
+import org.scalatheagorist.freeflowfeedszio.publisher.*
 import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
 import zio.ZIO
 import zio.ZLayer
@@ -27,7 +28,7 @@ object Configuration:
   given show: Show[Configuration] with
     def show(appConfig: Configuration): String =
       show"""
-            |hosts:           ${Hosts.show.show(appConfig.hosts)}
+            |hosts:           ${appConfig.hosts}
             |databaseConfig:  ${appConfig.databaseConfig}
             |concurrency:     ${appConfig.scrapeConcurrency}
             |update:          ${appConfig.update}
