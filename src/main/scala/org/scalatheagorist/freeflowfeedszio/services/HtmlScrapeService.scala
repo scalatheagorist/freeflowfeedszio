@@ -2,9 +2,9 @@ package org.scalatheagorist.freeflowfeedszio.services
 
 import org.scalatheagorist.freeflowfeedszio.Configuration
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.RssFeedsDatabaseService
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
-import org.scalatheagorist.freeflowfeedszio.models.RSSFeed
+import org.scalatheagorist.freeflowfeedszio.models.Feed
 import org.scalatheagorist.freeflowfeedszio.publisher.*
 import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import zio.*
@@ -21,12 +21,12 @@ trait HtmlScrapeService:
 object HtmlScrapeService:
   private val scrapeInfo = "\nstart scraping\n"
 
-  val layer: ZLayer[JavaClock & Configuration & HttpClient & RssFeedsDatabaseService, Nothing, HtmlScrapeService] =
+  val layer: ZLayer[JavaClock & Configuration & HttpClient & FeedsDatabaseService, Nothing, HtmlScrapeService] =
     ZLayer {
       (
         ZIO.service[Configuration],
         ZIO.service[HttpClient],
-        ZIO.service[RssFeedsDatabaseService],
+        ZIO.service[FeedsDatabaseService],
         ZIO.service[JavaClock]
       ).mapN((configuration, httpClient, databaseClient, clock) =>
         new HtmlScrapeService {
@@ -43,8 +43,8 @@ object HtmlScrapeService:
                       decoded  <- (response.body.asStream.tapError(ex => ZIO.logError(ex.getMessage)) >>> utf8Decode)
                                     .orElse(ZStream.empty)
                       htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
-                      rssFeed  <- RSSFeed.from(htmlResp, url).map(_.toDatabaseRssFeeds(clock))
-                    } yield rssFeed).tapError(ex => ZIO.logError(ex.getMessage))
+                      feed     <- Feed.from(htmlResp, url).map(_.toFeedRow(clock))
+                    } yield feed).tapError(ex => ZIO.logError(ex.getMessage))
                   }
                 })
             yield ()).tapError(ex => ZIO.logError(ex.getMessage))
