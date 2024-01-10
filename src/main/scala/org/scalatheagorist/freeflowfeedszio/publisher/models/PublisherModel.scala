@@ -6,4 +6,4 @@ import org.scalatheagorist.freeflowfeedszio.models.Feed
 import zio.stream.ZStream
 
 trait PublisherModel extends JsoupBrowser:
-  def toFeedStream(htmlResponse: HtmlResponse): ZStream[Any, Throwable, Feed]
+    def toFeedStream(htmlResponse: HtmlResponse): ZStream[Any, Throwable, Feed]

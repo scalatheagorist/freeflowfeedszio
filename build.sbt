@@ -18,8 +18,6 @@ val options = Seq(
   "-unchecked"
 )
 
-val scala3 = "_3"
-
 lazy val root = (project in file("."))
   .settings(
     organization := "org.scalatheagorist",
