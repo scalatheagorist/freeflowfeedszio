@@ -31,7 +31,10 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.postgresql" % "postgresql" % "42.7.1",
       "org.xerial" % "sqlite-jdbc" % "3.44.1.0",
-      "net.ruippeixotog" %% "scala-scraper" % "3.1.0"
+      "net.ruippeixotog" %% "scala-scraper" % "3.1.0",
+
+      "com.github.ghostdogpr" %% "caliban" % "2.0.2",
+      "com.github.ghostdogpr" %% "caliban-zio-http" % "2.0.2"
     ),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.10.0",
