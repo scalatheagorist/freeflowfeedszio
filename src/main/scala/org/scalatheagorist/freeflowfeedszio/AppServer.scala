@@ -16,38 +16,40 @@ import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault:
-    private val server: ZIO[Configuration & FeedService, Throwable, Option[Nothing]] =
-        ZIO
-            .serviceWithZIO[Routes](routes =>
-                Server
-                    .serve(routes.apply.withDefaultErrorResponse)
-                    .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
-                    .provide(Server.defaultWithPort(8989))
-            )
-            .provideLayer(Routes.layer)
+  private val server: ZIO[Configuration & FeedService, Throwable, Option[Nothing]] =
+    ZIO
+      .serviceWithZIO[Routes](routes =>
+        Server
+          .serve(routes.apply.withDefaultErrorResponse)
+          .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
+          .provide(Server.defaultWithPort(8989))
+      )
+      .provideLayer(Routes.layer)
 
-    private val zioHttpClient = ZLayer.suspend(Client.default)
+  private val zioHttpClient = ZLayer.suspend(Client.default)
 
-    private val clock = ZLayer.succeed(Clock.systemUTC())
+  private val clock = ZLayer.succeed(Clock.systemUTC())
 
-    private val databaseClientLive =
-        (Configuration.live >>> DatabaseConnectionService.databaseLive) >>> FeedsDatabaseService.layer
+  private val databaseClientLive =
+    (Configuration.live >>> DatabaseConnectionService.databaseLive) >>> FeedsDatabaseService.layer
 
-    private val htmlScrapeServiceLive =
-        (clock ++ Configuration.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
+  private val htmlScrapeServiceLive =
+    (clock ++ Configuration.live ++ (zioHttpClient >>> HttpClient.live) ++ databaseClientLive) >>> HtmlScrapeService.layer
 
-    private val feedServiceLive =
-        (clock ++ Configuration.live ++ databaseClientLive ++ FeedHtmlBuilder.layer ++ htmlScrapeServiceLive) >>> FeedService.layer
+  private val feedServiceLive =
+    (clock ++ Configuration.live ++ databaseClientLive ++ FeedHtmlBuilder.layer ++ htmlScrapeServiceLive) >>> FeedService.layer
 
-    // start server
-    override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
-        ZIO.serviceWithZIO[Configuration] { configuration =>
-            (for
-                _ <- ZIO.logInfo(configuration.show)
+  // start server
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+    ZIO
+      .serviceWithZIO[Configuration] { configuration =>
+        (for
+          _ <- ZIO.logInfo(configuration.show)
 
-                _ <- ZIO.serviceWithZIO[FeedService](_.runScraper.provideLayer(zioHttpClient).forkDaemon)
+          _ <- ZIO.serviceWithZIO[FeedService](_.runScraper.provideLayer(zioHttpClient).forkDaemon)
 
-                _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
-                _ <- server
-            yield ()).provideLayer(Configuration.live ++ feedServiceLive)
-        }.provideLayer(Configuration.live)
+          _ <- ZIO.logInfo(s"Server started @ http://0.0.0.0:8989")
+          _ <- server
+        yield ()).provideLayer(Configuration.live ++ feedServiceLive)
+      }
+      .provideLayer(Configuration.live)

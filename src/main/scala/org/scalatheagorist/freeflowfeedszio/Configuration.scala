@@ -25,27 +25,27 @@ final case class Configuration(
 )
 
 object Configuration:
-    given show: Show[Configuration] with
-        def show(appConfig: Configuration): String =
-            show"""
-                  |hosts:           ${appConfig.hosts}
-                  |databaseConfig:  ${appConfig.databaseConfig}
-                  |concurrency:     ${appConfig.scrapeConcurrency}
-                  |update:          ${appConfig.update}
-                  |updateInterval:  ${appConfig.updateInterval}
-                  |initialReverse:  ${appConfig.initialReverse}
-                  |pageSize:        ${appConfig.pageSize}
-                  |""".stripMargin
+  given show: Show[Configuration] with
+    def show(appConfig: Configuration): String =
+      show"""
+            |hosts:           ${appConfig.hosts}
+            |databaseConfig:  ${appConfig.databaseConfig}
+            |concurrency:     ${appConfig.scrapeConcurrency}
+            |update:          ${appConfig.update}
+            |updateInterval:  ${appConfig.updateInterval}
+            |initialReverse:  ${appConfig.initialReverse}
+            |pageSize:        ${appConfig.pageSize}
+            |""".stripMargin
 
-    val live: ZLayer[Any, Throwable, Configuration] =
-        ZLayer.fromZIO {
-            for
-                baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
-                _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
+  val live: ZLayer[Any, Throwable, Configuration] =
+    ZLayer.fromZIO {
+      for
+        baseDir <- ZIO.attempt(new File(java.lang.System.getProperty("user.dir")))
+        _       <- ZIO.logInfo(s"baseDir: ${baseDir.getAbsolutePath}")
 
-                confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
-                _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
+        confDir <- ZIO.attempt(new File(baseDir, "src/main/resources/application.conf"))
+        _       <- ZIO.logInfo(s"conf dir: ${confDir.getAbsolutePath}")
 
-                config <- read(descriptor[Configuration] from TypesafeConfigSource.fromHoconFile(confDir))
-            yield config
-        }
+        config <- read(descriptor[Configuration] from TypesafeConfigSource.fromHoconFile(confDir))
+      yield config
+    }

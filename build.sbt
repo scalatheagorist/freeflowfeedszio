@@ -26,6 +26,7 @@ lazy val root = (project in file("."))
     scalacOptions ++= options,
     Test / scalaSource := baseDirectory.value / "test" / "scala",
     Compile / scalacOptions ++= (Seq("-nowarn") ++ options),
+    scalafmtOnCompile := true,
     Test / resourceDirectory := baseDirectory.value / "test" / "resources",
     libraryDependencies ++= Seq(
       "org.postgresql" % "postgresql" % "42.7.1",
