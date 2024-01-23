@@ -1,11 +1,12 @@
 package org.scalatheagorist.freeflowfeedszio.props
 
 import caliban.schema.Schema
+import caliban.schema.Schema.auto.*
 import caliban.schema.Types
 import cats.Show
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.Feed
+import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.props.Props.*
 import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher.*
 import org.scalatheagorist.freeflowfeedszio.props.models.*

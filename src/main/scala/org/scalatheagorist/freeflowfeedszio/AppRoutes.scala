@@ -3,6 +3,7 @@ package org.scalatheagorist.freeflowfeedszio
 import caliban.*
 import caliban.interop.tapir.HttpInterpreter
 import caliban.schema.Annotations.GQLDescription
+import caliban.schema.Annotations.GQLName
 import caliban.schema.ArgBuilder.auto.*
 import caliban.schema.Schema
 import caliban.schema.Schema.auto.*
@@ -40,26 +41,30 @@ object AppRoutes:
     case class SearchArgs(term: String, page: Int) extends Args(page)
   }
 
-  case class Queries(
+  @GQLName("Response")
+  case class ResponseQL(value: String)
+
+  case class QueryQL(
       @GQLDescription("Return all articles by publisher name")
-      props: Option[PropsArgs] => Task[Response],
+      props: Option[PropsArgs] => Task[ResponseQL],
       @GQLDescription("Return all articles")
-      all: Option[AllArgs] => Task[Response],
+      all: Option[AllArgs] => Task[ResponseQL],
       @GQLDescription("Return all articles filtered by search term")
-      search: Option[SearchArgs] => Task[Response]
+      search: Option[SearchArgs] => Task[ResponseQL]
   )
 
   given Schema[Any, PropsArgs]  = Schema.gen
   given Schema[Any, AllArgs]    = Schema.gen
   given Schema[Any, SearchArgs] = Schema.gen
-  given Schema[Any, Queries]    = Schema.gen
+  given Schema[Any, ResponseQL] = Schema.gen
+  given Schema[Any, QueryQL]    = Schema.gen
 
   val layer: ZLayer[Configuration & FeedService, Nothing, AppRoutes] =
     ZLayer {
       (ZIO.service[FeedService], ZIO.serviceWith[Configuration](_.pageSize)).mapN { (feedService, pageSize) =>
         new AppRoutes {
           override def apply: GraphQL[Any] =
-            def query(page: Int, props: Option[Props], term: Option[String]): Task[Response] =
+            def query(page: Int, props: Option[Props], term: Option[String]): Task[ResponseQL] =
               val page0  = if (page < 0) 0 else page - 1
               val feeds  = feedService.getFeeds(page0, pageSize, props, term)
               val header = Header.ContentType(mediaType = MediaType.text.html)
@@ -69,20 +74,19 @@ object AppRoutes:
                   .runFold("")(_ + _)
                   .tapError(err => ZIO.logWarning(s"could not create content: ${err.getMessage}"))
                   .map(IndexHtml(_))
-                  .map(index => Response(body = Body.fromString(index), headers = Headers(header :: Nil)))
-              else ZIO.attempt(Response(body = Body.fromCharSequenceStream(feeds), headers = Headers(header :: Nil)))
+                  .map(ResponseQL)
+              else feeds.runFold("")(_ + _).map(ResponseQL)
 
-            def matching[A <: Args](a: Option[A]): Task[Response] = a match {
+            def matching[A <: Args](a: Option[A]): Task[ResponseQL] = a match {
               case Some(PropsArgs(props, page)) => query(page, Some(props), None)
               case Some(SearchArgs(term, page)) => query(page, None, Some(term))
               case Some(AllArgs(page))          => query(page, None, None)
-              case _                            =>
-                ZIO.succeed(Response(status = Status.NotFound)) <* ZIO.logWarning(s"NOT FOUND")
+              case _                            => ZIO.succeed(ResponseQL("NOT FOUND")) <* ZIO.logWarning(s"NOT FOUND")
             }
 
             graphQL(
               RootResolver(
-                Queries(
+                QueryQL(
                   publisherArgs => matching[PropsArgs](publisherArgs),
                   argsAll => matching[AllArgs](argsAll),
                   argsTerm => matching[SearchArgs](argsTerm)
