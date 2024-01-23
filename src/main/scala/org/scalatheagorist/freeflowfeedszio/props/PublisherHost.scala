@@ -1,19 +1,20 @@
-package org.scalatheagorist.freeflowfeedszio.publisher
+package org.scalatheagorist.freeflowfeedszio.props
 
 import cats.Show
 import net.ruippeixotog.scalascraper.browser.Browser
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.Feed
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
-import org.scalatheagorist.freeflowfeedszio.publisher.PublisherUrl
+import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
+import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
+import org.scalatheagorist.freeflowfeedszio.props.Props.SCHWEIZER_MONAT
+import org.scalatheagorist.freeflowfeedszio.props.PublisherUrl
 import org.scalatheagorist.freeflowfeedszio.util.RichURL.*
 import zio.stream.ZStream
 
 final case class PublisherHost(url: String, path: String, pageTo: Int, publisher: Publisher):
   def toPublisherUrls: List[(Publisher, String)] = publisher match
-    case Publisher.SCHWEIZER_MONAT => fromPaths
-    case _                         => fromPages
+    case SCHWEIZER_MONAT => fromPaths
+    case _               => fromPages
 
   private inline def fromPages: List[(Publisher, String)] =
     (publisher, url) :: List.range(1, pageTo).map(page => s"$url$path$page").map(publisher -> _)

@@ -8,9 +8,9 @@ import caliban.schema.Schema
 import caliban.schema.Schema.auto.*
 import cats.implicits.catsSyntaxOptionId
 import org.scalatheagorist.freeflowfeedszio.AppRoutes.Args.*
-import org.scalatheagorist.freeflowfeedszio.publisher.Props
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
+import org.scalatheagorist.freeflowfeedszio.props.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
 import org.scalatheagorist.freeflowfeedszio.services.FeedService
 import org.scalatheagorist.freeflowfeedszio.view.IndexHtml
 import zio.IO

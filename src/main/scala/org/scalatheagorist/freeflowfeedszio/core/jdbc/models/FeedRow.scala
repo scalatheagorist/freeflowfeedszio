@@ -2,9 +2,9 @@ package org.scalatheagorist.freeflowfeedszio.core.jdbc.models
 
 import cats.implicits.toShow
 import cats.kernel.Monoid
-import org.scalatheagorist.freeflowfeedszio.publisher.Props
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
+import org.scalatheagorist.freeflowfeedszio.props.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
 import zio.*
 
 import java.sql.Connection

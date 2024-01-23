@@ -5,8 +5,8 @@ import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
 import org.scalatheagorist.freeflowfeedszio.models.Feed
-import org.scalatheagorist.freeflowfeedszio.publisher.*
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
+import org.scalatheagorist.freeflowfeedszio.props.*
+import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
 import zio.*
 import zio.http.Client
 import zio.prelude.AssociativeBothTuple4Ops

@@ -1,4 +1,4 @@
-package org.scalatheagorist.freeflowfeedszio.publisher.models
+package org.scalatheagorist.freeflowfeedszio.props.models
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse

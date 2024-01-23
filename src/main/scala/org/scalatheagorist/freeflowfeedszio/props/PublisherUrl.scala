@@ -1,8 +1,8 @@
-package org.scalatheagorist.freeflowfeedszio.publisher
+package org.scalatheagorist.freeflowfeedszio.props
 
 import cats.Show
 import cats.implicits.showInterpolator
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.*
+import org.scalatheagorist.freeflowfeedszio.props.Props.*
 import zio.http.URL
 import zio.stream.ZStream
 

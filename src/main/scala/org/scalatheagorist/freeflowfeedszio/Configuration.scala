@@ -4,8 +4,8 @@ import cats.Show
 import cats.implicits.showInterpolator
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.DatabaseConfig.*
-import org.scalatheagorist.freeflowfeedszio.publisher.*
-import org.scalatheagorist.freeflowfeedszio.publisher.PublisherHost
+import org.scalatheagorist.freeflowfeedszio.props.*
+import org.scalatheagorist.freeflowfeedszio.props.PublisherHost
 import zio.ZIO
 import zio.ZLayer
 import zio.config.*

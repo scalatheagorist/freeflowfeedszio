@@ -1,7 +1,7 @@
 package org.scalatheagorist.freeflowfeedszio.core.jdbc
 
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.models.FeedRow
-import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props
 import zio.*
 import zio.http.Client
 import zio.stream.ZStream

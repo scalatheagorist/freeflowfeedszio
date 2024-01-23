@@ -1,9 +1,9 @@
 package org.scalatheagorist.freeflowfeedszio.view
 
 import org.scalatheagorist.freeflowfeedszio.models.Feed
-import org.scalatheagorist.freeflowfeedszio.publisher.Props
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
-import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
+import org.scalatheagorist.freeflowfeedszio.props.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
 import zio.ULayer
 import zio.ZLayer
 import zio.stream.ZStream

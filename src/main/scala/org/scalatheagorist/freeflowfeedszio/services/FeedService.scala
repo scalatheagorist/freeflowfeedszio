@@ -3,7 +3,7 @@ package org.scalatheagorist.freeflowfeedszio.services
 import org.scalatheagorist.freeflowfeedszio.Configuration
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.models.Feed
-import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props
 import org.scalatheagorist.freeflowfeedszio.view.FeedHtmlBuilder
 import zio.*
 import zio.Config.LocalTime
