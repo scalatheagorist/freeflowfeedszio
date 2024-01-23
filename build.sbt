@@ -15,7 +15,8 @@ val options = Seq(
   "-encoding", "utf8", // Specify character encoding used by source files.
   "-language:implicitConversions", // Allow definition of implicit functions called views
   "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
-  "-unchecked"
+  "-unchecked",
+  "-Xmax-inlines:50"
 )
 
 lazy val root = (project in file("."))

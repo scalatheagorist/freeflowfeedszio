@@ -2,10 +2,15 @@ package org.scalatheagorist.freeflowfeedszio
 
 import caliban.*
 import caliban.interop.tapir.HttpInterpreter
+import caliban.schema.Annotations.GQLDescription
 import caliban.schema.ArgBuilder.auto.*
+import caliban.schema.Schema
 import caliban.schema.Schema.auto.*
 import cats.implicits.catsSyntaxOptionId
+import org.scalatheagorist.freeflowfeedszio.AppRoutes.Args.*
 import org.scalatheagorist.freeflowfeedszio.publisher.Props
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Lang
+import org.scalatheagorist.freeflowfeedszio.publisher.Props.Publisher
 import org.scalatheagorist.freeflowfeedszio.services.FeedService
 import org.scalatheagorist.freeflowfeedszio.view.IndexHtml
 import zio.IO
@@ -28,16 +33,26 @@ trait AppRoutes:
   def apply: IO[CalibanError.ValidationError, GraphQLInterpreter[Any, CalibanError]]
 
 object AppRoutes:
-  private trait Args(page: Int)
-  private case class PropsQueryArgs(props: Props, page: Int) extends Args(page)
-  private case class AllArgs(page: Int)                      extends Args(page)
-  private case class SearchArgs(term: String, page: Int)     extends Args(page)
+  sealed trait Args(page: Int)
+  object Args {
+    case class PropsArgs(props: Props, page: Int)  extends Args(page)
+    case class AllArgs(page: Int)                  extends Args(page)
+    case class SearchArgs(term: String, page: Int) extends Args(page)
+  }
 
-  private case class Queries(
-      publisher: Option[PropsQueryArgs] => Task[Response],
+  case class Queries(
+      @GQLDescription("Return all articles by publisher name")
+      props: Option[PropsArgs] => Task[Response],
+      @GQLDescription("Return all articles")
       all: Option[AllArgs] => Task[Response],
-      term: Option[SearchArgs] => Task[Response]
+      @GQLDescription("Return all articles filtered by search term")
+      search: Option[SearchArgs] => Task[Response]
   )
+
+  given Schema[Any, PropsArgs]  = Schema.gen
+  given Schema[Any, AllArgs]    = Schema.gen
+  given Schema[Any, SearchArgs] = Schema.gen
+  given Schema[Any, Queries]    = Schema.gen
 
   val layer: ZLayer[Configuration & FeedService, Nothing, AppRoutes] =
     ZLayer {
@@ -58,24 +73,21 @@ object AppRoutes:
               else ZIO.attempt(Response(body = Body.fromCharSequenceStream(feeds), headers = Headers(header :: Nil)))
 
             def matching[A <: Args](a: Option[A]): Task[Response] = a match {
-              case Some(PropsQueryArgs(props, page)) => query(page, Some(props), None)
-              case Some(SearchArgs(term, page))      => query(page, None, Some(term))
-              case Some(AllArgs(page))               => query(page, None, None)
-              case _                                 =>
+              case Some(PropsArgs(props, page)) => query(page, Some(props), None)
+              case Some(SearchArgs(term, page)) => query(page, None, Some(term))
+              case Some(AllArgs(page))          => query(page, None, None)
+              case _                            =>
                 ZIO.logWarning(s"NOT FOUND") *> ZIO.succeed(Response(status = Status.NotFound))
             }
 
             graphQL(
-              resolver = RootResolver(
+              RootResolver(
                 Queries(
-                  publisherArgs => matching[PropsQueryArgs](publisherArgs),
+                  publisherArgs => matching[PropsArgs](publisherArgs),
                   argsAll => matching[AllArgs](argsAll),
                   argsTerm => matching[SearchArgs](argsTerm)
                 )
-              ),
-              directives = Nil,
-              schemaDirectives = Nil,
-              schemaDescription = None
+              )
             ).interpreter
         }
       }

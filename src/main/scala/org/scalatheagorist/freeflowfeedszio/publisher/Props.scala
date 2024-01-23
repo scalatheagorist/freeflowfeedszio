@@ -1,5 +1,7 @@
 package org.scalatheagorist.freeflowfeedszio.publisher
 
+import caliban.schema.Schema
+import caliban.schema.Types
 import cats.Show
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import org.scalatheagorist.freeflowfeedszio.models.HtmlResponse
@@ -10,10 +12,10 @@ import org.scalatheagorist.freeflowfeedszio.publisher.models.*
 import org.scalatheagorist.freeflowfeedszio.util.RichURL.*
 import zio.stream.ZStream
 
-type Props = Publisher | Lang
+sealed trait Props derives Schema.Auto
 
 object Props:
-  enum Publisher:
+  enum Publisher extends Props:
     case EFMAGAZIN, FREIHEITSFUNKEN, MISESDE, SCHWEIZER_MONAT
 
   object Publisher:
@@ -30,7 +32,7 @@ object Props:
       case "MISESDE"         => MISESDE
       case "SCHWEIZER_MONAT" => SCHWEIZER_MONAT
 
-  enum Lang:
+  enum Lang extends Props:
     case EN, DE
 
   object Lang:
@@ -42,3 +44,5 @@ object Props:
     def from(lang: String): Lang = lang match
       case "EN" => EN
       case "DE" => DE
+
+  given Schema[Any, Props] = Schema.Auto.derived
