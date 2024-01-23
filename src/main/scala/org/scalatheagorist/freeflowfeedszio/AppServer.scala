@@ -1,5 +1,7 @@
 package org.scalatheagorist.freeflowfeedszio
 
+import caliban.ZHttpAdapter
+import caliban.interop.tapir.HttpInterpreter
 import cats.implicits.toShow
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
@@ -11,22 +13,29 @@ import zio.Duration
 import zio.ZIOAppDefault
 import zio.*
 import zio.http.*
-
+import caliban.{GraphQL, ZHttpAdapter}
+import caliban.interop.tapir.{HttpInterpreter, WebSocketInterpreter}
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 
 object AppServer extends ZIOAppDefault:
-  private val server: ZIO[Configuration & FeedService, Throwable, Option[Nothing]] =
-    ZIO
-      .serviceWithZIO[Routes](routes =>
-        Server
-          .serve(routes.apply.withDefaultErrorResponse)
-          .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
-          .provide(Server.defaultWithPort(8989))
-      )
-      .provideLayer(Routes.layer)
+  import sttp.tapir.json.circe.*
 
-  private val zioHttpClient = ZLayer.suspend(Client.default)
+  private val server: ZIO[Configuration & FeedService, Throwable, Option[Nothing]] =
+    for
+      interpreter <- ZIO.serviceWithZIO[AppRoutes](_.apply).provideLayer(AppRoutes.layer)
+      server      <- Server
+                       .serve(
+                         Routes(
+                           Method.ANY / "api" / "graphql" ->
+                             ZHttpAdapter.makeHttpService(HttpInterpreter(interpreter))
+                         ).toHttpApp
+                       )
+                       .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
+                       .provide(Server.defaultWithPort(8989))
+    yield server
+
+  private val zioHttpClient = ZLayer.suspend(Client.default ++ Scope.default)
 
   private val clock = ZLayer.succeed(Clock.systemUTC())
 

@@ -4,13 +4,13 @@ import zio.*
 import zio.http.*
 
 trait HttpClient:
-  def get(url: URL): ZIO[Client, Throwable, Response]
+  def get(url: URL): ZIO[Client & Scope, Throwable, Response]
 
 object HttpClient:
-  val live: ZLayer[Any, Nothing, HttpClient] =
+  val live: ULayer[HttpClient] =
     ZLayer.succeed(
       new HttpClient {
-        override def get(url: URL): ZIO[Client, Throwable, Response] =
+        override def get(url: URL): ZIO[Client & Scope, Throwable, Response] =
           ZClient.request(Request.get(url))
       }
     )

@@ -26,7 +26,7 @@ trait FeedService:
       term: Option[String]
   ): ZStream[Any, Throwable, String]
 
-  def runScraper: ZIO[Client, Throwable, Unit]
+  def runScraper: ZIO[Client & Scope, Throwable, Unit]
 
 object FeedService:
   val layer: ZLayer[
@@ -57,7 +57,7 @@ object FeedService:
               }
               .tapError(ex => ZIO.logError(ex.getMessage))
 
-          def runScraper: ZIO[Client, Throwable, Unit] =
+          def runScraper: ZIO[Client & Scope, Throwable, Unit] =
             val targetTime =
               for
                 time           <- ZIO.fromEither(LocalTime.parse(configuration.update))
@@ -69,7 +69,7 @@ object FeedService:
               /**
                * sleep 1 second to begin a new loop session without multiple runs at the moment
                */
-              def pushLoop: ZIO[Client, Throwable, Unit] =
+              def pushLoop: ZIO[Client & Scope, Throwable, Unit] =
                 for
                   currentTime  <- zioClock.currentDateTime
                   delay        <- ZIO.attempt(Duration.between(currentTime, targetTime))

@@ -16,7 +16,7 @@ trait FeedsDatabaseService extends SQLFunctions:
       searchTerm: Option[String]
   ): ZStream[Any, Throwable, FeedRow]
 
-  def insert(stream: ZStream[Client, Throwable, FeedRow]): ZStream[Client, Throwable, Unit]
+  def insert(stream: ZStream[Client & Scope, Throwable, FeedRow]): ZStream[Client & Scope, Throwable, Unit]
 
 object FeedsDatabaseService:
   val layer: ZLayer[Connection, Nothing, FeedsDatabaseService] =
@@ -43,7 +43,9 @@ object FeedsDatabaseService:
               yield iterator
             )
 
-          override def insert(feeds: ZStream[Client, Throwable, FeedRow]): ZStream[Client, Throwable, Unit] =
+          override def insert(
+              feeds: ZStream[Client & Scope, Throwable, FeedRow]
+          ): ZStream[Client & Scope, Throwable, Unit] =
             feeds.chunks.flatMap { feeds =>
               ZStream.blocking {
                 ZStream.fromZIO {

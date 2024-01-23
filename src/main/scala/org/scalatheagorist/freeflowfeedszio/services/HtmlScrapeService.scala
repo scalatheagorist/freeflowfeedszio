@@ -16,7 +16,7 @@ import zio.stream.ZStream
 import java.time.Clock as JavaClock
 
 trait HtmlScrapeService:
-  def stream: ZStream[Client, Throwable, Unit]
+  def stream: ZStream[Client & Scope, Throwable, Unit]
 
 object HtmlScrapeService:
   private val scrapeInfo = "\nstart scraping\n"
@@ -30,14 +30,14 @@ object HtmlScrapeService:
         ZIO.service[JavaClock]
       ).mapN((configuration, httpClient, databaseClient, clock) =>
         new HtmlScrapeService {
-          override def stream: ZStream[Client, Throwable, Unit] =
+          override def stream: ZStream[Client & Scope, Throwable, Unit] =
             (for
               _            <- ZStream.logInfo(scrapeInfo)
               publisherUrls = configuration.hosts.toPublisherUrl(configuration.initialReverse)
               _            <-
                 databaseClient.insert(stream = publisherUrls.flatMapPar(configuration.scrapeConcurrency) { url =>
                   ZStream.blocking {
-                    (for {
+                    (for
                       response <- ZStream
                                     .fromZIO(httpClient.get(url.url))
                                     .tapError(ex => ZIO.logError(ex.getMessage))
@@ -48,7 +48,7 @@ object HtmlScrapeService:
                                     .orElse(ZStream.empty)
                       htmlResp <- ZStream.succeed(HtmlResponse(url.publisher, decoded))
                       feed     <- Feed.from(htmlResp, url).map(_.toFeedRow(clock))
-                    } yield feed).tapError(ex => ZIO.logError(ex.getMessage))
+                    yield feed).tapError(ex => ZIO.logError(ex.getMessage))
                   }
                 })
             yield ()).tapError(ex => ZIO.logError(ex.getMessage))
