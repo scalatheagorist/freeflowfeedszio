@@ -1,20 +1,21 @@
 package org.scalatheagorist.freeflowfeedszio
 
+import caliban.GraphQL
 import caliban.ZHttpAdapter
 import caliban.interop.tapir.HttpInterpreter
+import caliban.interop.tapir.WebSocketInterpreter
 import cats.implicits.toShow
 import org.scalatheagorist.freeflowfeedszio.core.http.HttpClient
-import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.core.jdbc.DatabaseConnectionService
-import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
+import org.scalatheagorist.freeflowfeedszio.core.jdbc.FeedsDatabaseService
 import org.scalatheagorist.freeflowfeedszio.services.FeedService
+import org.scalatheagorist.freeflowfeedszio.services.HtmlScrapeService
 import org.scalatheagorist.freeflowfeedszio.view.FeedHtmlBuilder
+import zio.*
 import zio.Duration
 import zio.ZIOAppDefault
-import zio.*
 import zio.http.*
-import caliban.{GraphQL, ZHttpAdapter}
-import caliban.interop.tapir.{HttpInterpreter, WebSocketInterpreter}
+
 import java.time.Clock
 import java.util.concurrent.TimeUnit
 
@@ -23,14 +24,11 @@ object AppServer extends ZIOAppDefault:
 
   private val server: ZIO[Configuration & FeedService, Throwable, Option[Nothing]] =
     for
-      interpreter <- ZIO.serviceWithZIO[AppRoutes](_.apply).provideLayer(AppRoutes.layer)
+      api         <- ZIO.service[AppRoutes].provideLayer(AppRoutes.layer)
+      interpreter <- api.apply.interpreter
+      httpService  = ZHttpAdapter.makeHttpService(HttpInterpreter(interpreter))
       server      <- Server
-                       .serve(
-                         Routes(
-                           Method.ANY / "api" / "graphql" ->
-                             ZHttpAdapter.makeHttpService(HttpInterpreter(interpreter))
-                         ).toHttpApp
-                       )
+                       .serve(Routes(Method.ANY / "api" / "graphql" -> httpService).toHttpApp)
                        .timeout(Duration(Int.MaxValue, TimeUnit.SECONDS))
                        .provide(Server.defaultWithPort(8989))
     yield server

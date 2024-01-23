@@ -30,7 +30,7 @@ import zio.stream.ZStream
 import scala.util.Try
 
 trait AppRoutes:
-  def apply: IO[CalibanError.ValidationError, GraphQLInterpreter[Any, CalibanError]]
+  def apply: GraphQL[Any]
 
 object AppRoutes:
   sealed trait Args(page: Int)
@@ -58,7 +58,7 @@ object AppRoutes:
     ZLayer {
       (ZIO.service[FeedService], ZIO.serviceWith[Configuration](_.pageSize)).mapN { (feedService, pageSize) =>
         new AppRoutes {
-          override def apply: IO[CalibanError.ValidationError, GraphQLInterpreter[Any, CalibanError]] =
+          override def apply: GraphQL[Any] =
             def query(page: Int, props: Option[Props], term: Option[String]): Task[Response] =
               val page0  = if (page < 0) 0 else page - 1
               val feeds  = feedService.getFeeds(page0, pageSize, props, term)
@@ -77,7 +77,7 @@ object AppRoutes:
               case Some(SearchArgs(term, page)) => query(page, None, Some(term))
               case Some(AllArgs(page))          => query(page, None, None)
               case _                            =>
-                ZIO.logWarning(s"NOT FOUND") *> ZIO.succeed(Response(status = Status.NotFound))
+                ZIO.succeed(Response(status = Status.NotFound)) <* ZIO.logWarning(s"NOT FOUND")
             }
 
             graphQL(
@@ -88,7 +88,7 @@ object AppRoutes:
                   argsTerm => matching[SearchArgs](argsTerm)
                 )
               )
-            ).interpreter
+            )
         }
       }
     }
