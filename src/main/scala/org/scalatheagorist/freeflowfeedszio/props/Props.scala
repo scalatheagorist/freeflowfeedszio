@@ -50,6 +50,6 @@ object Props:
       case "EN" => EN
       case "DE" => DE
 
+  given Schema[Any, Props]     = Schema.gen
   given Schema[Any, Publisher] = Schema.gen
   given Schema[Any, Lang]      = Schema.gen
-  given Schema[Any, Props]     = Schema.gen

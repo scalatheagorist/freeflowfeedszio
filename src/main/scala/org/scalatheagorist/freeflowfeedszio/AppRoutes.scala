@@ -11,6 +11,7 @@ import caliban.schema.Schema
 import caliban.schema.Schema.auto.*
 import org.scalatheagorist.freeflowfeedszio.AppRoutes.Args.*
 import org.scalatheagorist.freeflowfeedszio.props.Props
+import org.scalatheagorist.freeflowfeedszio.props.Props.*
 import org.scalatheagorist.freeflowfeedszio.props.Props.Lang
 import org.scalatheagorist.freeflowfeedszio.props.Props.Publisher
 import org.scalatheagorist.freeflowfeedszio.services.FeedService
