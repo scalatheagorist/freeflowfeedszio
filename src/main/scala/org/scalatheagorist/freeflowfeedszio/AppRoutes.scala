@@ -1,13 +1,14 @@
 package org.scalatheagorist.freeflowfeedszio
 
 import caliban.*
+import caliban.interop.tapir
 import caliban.interop.tapir.HttpInterpreter
+import caliban.interop.tapir.schema
 import caliban.schema.Annotations.GQLDescription
 import caliban.schema.Annotations.GQLName
 import caliban.schema.ArgBuilder.auto.*
 import caliban.schema.Schema
 import caliban.schema.Schema.auto.*
-import cats.implicits.catsSyntaxOptionId
 import org.scalatheagorist.freeflowfeedszio.AppRoutes.Args.*
 import org.scalatheagorist.freeflowfeedszio.props.Props
 import org.scalatheagorist.freeflowfeedszio.props.Props.Lang
@@ -42,9 +43,9 @@ object AppRoutes:
   }
 
   @GQLName("Response")
-  case class ResponseQL(value: String)
+  case class ResponseQL(result: String)
 
-  case class QueryQL(
+  case class Queries(
       @GQLDescription("Return all articles by publisher name")
       props: Option[PropsArgs] => Task[ResponseQL],
       @GQLDescription("Return all articles")
@@ -57,7 +58,7 @@ object AppRoutes:
   given Schema[Any, AllArgs]    = Schema.gen
   given Schema[Any, SearchArgs] = Schema.gen
   given Schema[Any, ResponseQL] = Schema.gen
-  given Schema[Any, QueryQL]    = Schema.gen
+  given Schema[Any, Queries]    = Schema.gen
 
   val layer: ZLayer[Configuration & FeedService, Nothing, AppRoutes] =
     ZLayer {
@@ -86,7 +87,7 @@ object AppRoutes:
 
             graphQL(
               RootResolver(
-                QueryQL(
+                Queries(
                   publisherArgs => matching[PropsArgs](publisherArgs),
                   argsAll => matching[AllArgs](argsAll),
                   argsTerm => matching[SearchArgs](argsTerm)
